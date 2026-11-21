@@ -1,0 +1,28 @@
+{
+  "name": "fewbie-modules",
+  "private": true,
+  "type": "module",
+  "description": "fewbie page-level module registry",
+  "prettier": "@devbie/style-guide/prettier",
+  "scripts": {
+    "test": "vitest run",
+    "check:contract": "node scripts/check-contract.mjs",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@devbie/style-guide": "^1.8.0",
+    "@testing-library/jest-dom": "^8.0.0",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.13",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "axe-core": "^4.14.1",
+    "jsdom": "^29.1.1",
+    "prettier": "^3.10.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "typescript": "^6.0.3",
+    "vitest": "^5.1.1"
+  }
+}

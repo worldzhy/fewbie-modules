@@ -184,7 +184,7 @@ export function PreferencesSettings({
             onValueChange={(value) => void handleLanguage(value)}
             disabled={languagePending}
           >
-            <SelectTrigger id="preferences-settings-language" className="w-60">
+            <SelectTrigger id="preferences-settings-language" aria-label={labels.languageTitle} className="w-60">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
