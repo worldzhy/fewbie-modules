@@ -61,10 +61,10 @@ const ALLOWED_UI = new Set([
  * Directory that holds an item's installable sources, per manifest type. A
  * contract's `types.ts` lives under the same tree as the item it describes
  * (ADR-063), so a component-level item is checked against its own types file
- * instead of the page-level `src/modules/<name>/types.ts`.
+ * instead of the page-level `src/features/<name>/types.ts`.
  */
 const ITEM_SOURCE_DIR = {
-  "registry:block": "modules",
+  "registry:block": "features",
   "registry:component": "components",
   "registry:lib": "lib",
 };

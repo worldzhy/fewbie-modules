@@ -23,8 +23,8 @@ export default defineConfig({
       ),
       // Cross-item imports go through the item's public entry (forgot-password
       // reuses password-checklist's predicate).
-      "@/modules/password-checklist": fileURLToPath(
-        new URL("./packages/modules/password-checklist/src/modules/password-checklist/index.ts", import.meta.url),
+      "@/features/password-checklist": fileURLToPath(
+        new URL("./packages/modules/password-checklist/src/features/password-checklist/index.ts", import.meta.url),
       ),
       "@testing": fileURLToPath(new URL("./harness/testing", import.meta.url)),
       "@": fileURLToPath(new URL("./harness/framework", import.meta.url)),

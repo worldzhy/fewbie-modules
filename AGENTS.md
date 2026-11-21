@@ -3,7 +3,7 @@
 ## Project
 
 fewbie module registry: the single authored store for fewbie items, at both
-page level (`src/modules/**`) and lib/component level (`src/lib/**`,
+page level (`src/features/**`) and lib/component level (`src/lib/**`,
 `src/components/**`). Items live under `packages/modules/` (ADR-059 in
 `devbie`); each item directory carries `fewbie.module.json` and the source files it
 ships, laid out to mirror the host target path.
@@ -23,8 +23,8 @@ A directory belongs here only when all of these hold:
 - It is copy-assemblable: the host renders the exported component with props
   and adds no hand-written adapter beyond the ports the item documents.
 - Item files mirror their target path
-  (`packages/modules/login-page/src/modules/login-page/*` lands at
-  `src/modules/login-page/*`), so the CLI copies them verbatim.
+  (`packages/modules/login-page/src/features/login-page/*` lands at
+  `src/features/login-page/*`), so the CLI copies them verbatim.
 
 ## Registry layout
 

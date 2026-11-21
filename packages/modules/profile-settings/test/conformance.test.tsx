@@ -3,8 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 import { expectNoViolations } from "@testing/a11y";
 import { makeLabels } from "@testing/labels";
 import { render, screen, userEvent, waitFor } from "@testing/render";
-import { ProfileSettings } from "../src/modules/profile-settings/profile-settings";
-import type { ProfileSettingsLabels, ProfileSettingsValues } from "../src/modules/profile-settings/types";
+import { ProfileSettings } from "../src/features/profile-settings/profile-settings";
+import type { ProfileSettingsLabels, ProfileSettingsValues } from "../src/features/profile-settings/types";
 
 const PROFILE: ProfileSettingsValues = {
   name: "Ada Lovelace",
