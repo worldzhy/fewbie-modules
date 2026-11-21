@@ -56,14 +56,15 @@ An item directory mirrors the target layout:
 Only `fewbie.module.json` and the files it declares are installed. Everything else is
 registry infrastructure and never reaches a host:
 
-| Path                                                | Role                                                          |
-| --------------------------------------------------- | ------------------------------------------------------------- |
-| `packages/modules/<item>/fewbie.module.json`        | Manifest: `name`, `type`, `files`, optional `contract`        |
-| `packages/modules/<item>/<file>`                    | Payload, mirroring the host target path in `files`            |
-| `packages/modules/<item>/test/`                     | Conformance tests for that item                               |
-| `harness/`                                          | Shared vitest + jsdom harness and `@/components/ui/*` doubles |
-| `scripts/`                                          | `check-contract.mjs`                                          |
-| `package.json`, `vitest.config.ts`, `tsconfig.json` | Tooling for this repository                                   |
+| Path                                                | Role                                                                                                       |
+| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `packages/modules/<item>/fewbie.module.json`        | Manifest: `name`, `type`, `files`, optional `contract`                                                     |
+| `packages/modules/<item>/<file>`                    | Payload, mirroring the host target path in `files`                                                         |
+| `packages/modules/<item>/test/`                     | Conformance tests for that item                                                                            |
+| `harness/framework/`                                | Host-surface doubles: `@/components/ui/*` and `@/lib/{utils,api-client}`, used by `check:types` and vitest |
+| `harness/testing/`                                  | Repository-private vitest bootstrap and test utilities, imported as `@testing/*`                           |
+| `scripts/`                                          | `check-contract.mjs`                                                                                       |
+| `package.json`, `vitest.config.ts`, `tsconfig.json` | Tooling for this repository                                                                                |
 
 `check-contract.mjs` enforces the structural invariants on every item:
 directory name equals `fewbie.module.json.name`, every `files` entry is a safe

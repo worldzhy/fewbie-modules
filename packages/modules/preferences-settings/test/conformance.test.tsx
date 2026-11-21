@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { expectNoViolations } from "@/a11y";
-import { makeLabels } from "@/labels";
-import { render, screen, userEvent, waitFor } from "@/render";
+import { expectNoViolations } from "@testing/a11y";
+import { makeLabels } from "@testing/labels";
+import { render, screen, userEvent, waitFor } from "@testing/render";
 import { PreferencesSettings } from "../src/modules/preferences-settings/preferences-settings";
 import type {
   PreferencesSettingsLabels,

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { makeLabels } from "@/labels";
-import { render, screen, userEvent, waitFor } from "@/render";
+import { makeLabels } from "@testing/labels";
+import { render, screen, userEvent, waitFor } from "@testing/render";
 import { CopilotDock } from "../src/components/copilot/copilot-dock";
 import type {
   CopilotAgentEvent,
