@@ -1,44 +1,56 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
-import { isStrongPassword } from "../packages/modules/password-checklist/src/modules/password-checklist/password-checklist";
+import {
+  checkPasswordPolicy,
+  isStrongPassword,
+} from "../packages/modules/password-checklist/src/modules/password-checklist/password-checklist";
 
 /**
- * `password-checklist` and `forgot-password` each carry the password policy.
- *
- * The registry admits copy-assemblable items only, so sharing one implementation
- * across two items would force a cross-item import and break that rule. The
- * duplication is therefore accepted; this test is the guard that keeps the two
- * copies from drifting apart (R82-15).
+ * Truth table for the backend policy: `validator.isStrongPassword` with its
+ * default options (R84-01). Expected values come from running the installed
+ * validator against the same samples; the frontend predicate must agree on
+ * every row, including the Symbol set boundaries.
  */
+const PASSWORD_POLICY_TRUTH_TABLE: ReadonlyArray<{ password: string; strong: boolean; why: string }> = [
+  { password: "Abcdefg1!", strong: true, why: "ASCII symbol" },
+  { password: "Abcdefg1_", strong: true, why: "underscore is in validator's symbol set" },
+  { password: "Abcdefg1 ", strong: true, why: "space is in validator's symbol set" },
+  { password: "Abcdefg1£", strong: true, why: "pound sign is in validator's symbol set" },
+  { password: "Abcdefg1€", strong: false, why: "euro sign is outside validator's symbol set" },
+  { password: "Abcdefg1§", strong: false, why: "section sign is outside validator's symbol set" },
+  { password: "Abcdefg1", strong: false, why: "no symbol" },
+  { password: "abcdefg1!", strong: false, why: "no uppercase" },
+  { password: "ABCDEFG1!", strong: false, why: "no lowercase" },
+  { password: "Abcdefgh!", strong: false, why: "no digit" },
+  { password: "Abcdefg1💥", strong: false, why: "astral code points are never symbols" },
+  { password: "Abcdefg1\n", strong: false, why: "newline is not a symbol" },
+  { password: "Abcdef!", strong: false, why: "under 8 UTF-16 code units" },
+  { password: "Abcd1!ef", strong: true, why: "exactly 8 UTF-16 code units" },
+];
 
-const root = path.resolve(__dirname, "..");
+test.each(PASSWORD_POLICY_TRUTH_TABLE)("isStrongPassword agrees with the backend: $why", ({ password, strong }) => {
+  expect(isStrongPassword(password)).toBe(strong);
+});
 
-async function forgotPasswordPattern(): Promise<RegExp> {
+test("checkPasswordPolicy reports each rule separately", () => {
+  expect(checkPasswordPolicy("Abcdefg1_")).toEqual({
+    length: true,
+    lowercase: true,
+    uppercase: true,
+    number: true,
+    symbol: true,
+  });
+  expect(checkPasswordPolicy("Abcdefg1€").symbol).toBe(false);
+  expect(checkPasswordPolicy("Abcdef").length).toBe(false);
+});
+
+test("forgot-password reuses the shared predicate instead of a local mirror", async () => {
   const source = await readFile(
-    path.join(root, "packages/modules/forgot-password/src/modules/forgot-password/forgot-password.tsx"),
+    path.resolve(__dirname, "../packages/modules/forgot-password/src/modules/forgot-password/forgot-password.tsx"),
     "utf8",
   );
-  const match = source.match(/const PASSWORD_PATTERN = \/(.+)\/;/);
-  expect(match).not.toBeNull();
-  return new RegExp(match![1]);
-}
-
-test("forgot-password enforces the same policy as password-checklist", async () => {
-  const pattern = await forgotPasswordPattern();
-  const samples = [
-    "Abcdef1!",
-    "abcdef1!",
-    "ABCDEF1!",
-    "Abcdefg!",
-    "Abcdefg1",
-    "Abcdef1",
-    "A1!aaaaa",
-    "Abcdefg1!",
-    "Ab 1!efg",
-    "Aa1!",
-  ];
-  for (const sample of samples) {
-    expect({ sample, strong: pattern.test(sample) }).toEqual({ sample, strong: isStrongPassword(sample) });
-  }
+  expect(source).toContain('from "@/modules/password-checklist"');
+  expect(source).not.toContain("PASSWORD_PATTERN");
+  expect(source).not.toContain("[^\\w\\s]");
 });
