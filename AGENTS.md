@@ -5,7 +5,7 @@
 fewbie module registry: the single authored store for fewbie items, at both
 page level (`src/modules/**`) and lib/component level (`src/lib/**`,
 `src/components/**`). Items live under `packages/modules/` (ADR-059 in
-`devbie`); each item directory carries `item.json` and the source files it
+`devbie`); each item directory carries `fewbie.module.json` and the source files it
 ships, laid out to mirror the host target path.
 
 `@devbie/fewbie-cli` ships a generated snapshot of this repository for hosts
@@ -28,12 +28,12 @@ A directory belongs here only when all of these hold:
 
 ## Registry layout
 
-Only `item.json` and the files in its `files` array are installed. Registry
+Only `fewbie.module.json` and the files in its `files` array are installed. Registry
 infrastructure never reaches a host: `packages/modules/<item>/test/`,
 `harness/`, `scripts/`, and the root `package.json` / `vitest.config.ts` /
 `tsconfig.json`.
 `scripts/check-contract.mjs` enforces this — directory name equals
-`item.json.name`, `files` paths are safe and exist, and the on-disk payload
+`fewbie.module.json.name`, `files` paths are safe and exist, and the on-disk payload
 (minus `test/`) matches `files` exactly. Items without a `contract` warn and
 skip only the contract comparison.
 

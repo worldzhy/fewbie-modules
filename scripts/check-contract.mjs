@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Type-truth gate: `types.ts` is the source of truth for a module's interface,
- * `item.json`'s `contract` is its executable projection. This script asserts
+ * `fewbie.module.json`'s `contract` is its executable projection. This script asserts
  * the two agree, so a label, port or ui atom cannot drift between them.
  *
  * It also owns the structural invariants of the registry: an item directory is
@@ -117,7 +117,7 @@ async function payloadFiles(directory) {
         await walk(target);
         continue;
       }
-      if (relative === "item.json") continue;
+      if (relative === "fewbie.module.json") continue;
       files.push(relative);
     }
   }
@@ -145,9 +145,9 @@ function normalizeFile(item, file) {
 
 async function checkItem(name) {
   const directory = path.join(root, name);
-  const manifest = JSON.parse(await fs.readFile(path.join(directory, "item.json"), "utf8"));
+  const manifest = JSON.parse(await fs.readFile(path.join(directory, "fewbie.module.json"), "utf8"));
   if (manifest.name !== name) {
-    fail(name, `item.json name '${manifest.name}' does not match its directory '${name}'`);
+    fail(name, `fewbie.module.json name '${manifest.name}' does not match its directory '${name}'`);
   }
 
   const declared = [];
@@ -163,7 +163,7 @@ async function checkItem(name) {
 
   const contract = manifest.contract;
   if (contract === undefined) {
-    warn(name, "item.json has no contract; contract checks skipped");
+    warn(name, "fewbie.module.json has no contract; contract checks skipped");
     checked.push(name);
     return;
   }
@@ -211,7 +211,7 @@ for (const entry of entries) {
     continue;
   }
   const hasManifest = await fs
-    .access(path.join(root, entry.name, "item.json"))
+    .access(path.join(root, entry.name, "fewbie.module.json"))
     .then(() => true)
     .catch(() => false);
   if (hasManifest) await checkItem(entry.name);

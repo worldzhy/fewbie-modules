@@ -4,7 +4,7 @@ The single authored registry for [fewbie](https://github.com/worldzhy/devbie)
 applications — both page-level modules and lib/component items.
 
 Items live in `packages/modules/`, and every directory there holding an
-`item.json` is one installable item. A host declares the registry in
+`fewbie.module.json` is one installable item. A host declares the registry in
 `fewbie.json` and installs with the CLI:
 
 ```json
@@ -51,12 +51,12 @@ An item directory mirrors the target layout:
 
 ## Registry layout
 
-Only `item.json` and the files it declares are installed. Everything else is
+Only `fewbie.module.json` and the files it declares are installed. Everything else is
 registry infrastructure and never reaches a host:
 
 | Path                                                | Role                                                          |
 | --------------------------------------------------- | ------------------------------------------------------------- |
-| `packages/modules/<item>/item.json`                 | Manifest: `name`, `type`, `files`, optional `contract`        |
+| `packages/modules/<item>/fewbie.module.json`        | Manifest: `name`, `type`, `files`, optional `contract`        |
 | `packages/modules/<item>/<file>`                    | Payload, mirroring the host target path in `files`            |
 | `packages/modules/<item>/test/`                     | Conformance tests for that item                               |
 | `harness/`                                          | Shared vitest + jsdom harness and `@/components/ui/*` doubles |
@@ -64,14 +64,14 @@ registry infrastructure and never reaches a host:
 | `package.json`, `vitest.config.ts`, `tsconfig.json` | Tooling for this repository                                   |
 
 `check-contract.mjs` enforces the structural invariants on every item:
-directory name equals `item.json.name`, every `files` entry is a safe
+directory name equals `fewbie.module.json.name`, every `files` entry is a safe
 repository-relative path that exists under the item directory, and the on-disk
 payload (excluding `test/`) matches `files` exactly.
 
 ## Contracts
 
 - Page-level modules (`registry:block` under `src/modules/**`) carry a
-  `contract` in `item.json`: `version`, `framework`, `entry`, `labels`,
+  `contract` in `fewbie.module.json`: `version`, `framework`, `entry`, `labels`,
   `ports`, `ui`, `states`. `types.ts` is the type truth, the contract is its
   executable projection, and `check-contract.mjs` asserts they agree.
 - `registry:lib` and `registry:component` items are copy-only today; they pass
