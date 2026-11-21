@@ -3,8 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 import { expectNoViolations } from "@testing/a11y";
 import { makeLabels } from "@testing/labels";
 import { render, screen, userEvent, waitFor } from "@testing/render";
-import { ForgotPasswordPage } from "../src/modules/forgot-password/forgot-password";
-import type { ForgotPasswordLabels, ForgotPasswordPort } from "../src/modules/forgot-password/types";
+import { ForgotPasswordPage } from "../src/features/forgot-password/forgot-password";
+import type { ForgotPasswordLabels, ForgotPasswordPort } from "../src/features/forgot-password/types";
 
 function setup(overrides: Partial<ForgotPasswordPort> = {}, props: { onReset?: () => void } = {}) {
   const port: ForgotPasswordPort = {
