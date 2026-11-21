@@ -132,11 +132,10 @@ export function SecuritySettings({
   const [disablePending, setDisablePending] = useState(false);
 
   const loadSessions = useCallback(async (): Promise<void> => {
-    setSessionsPending(true);
-    setSessionsFailed(false);
     try {
       const result = await portRef.current.listSessions();
       setSessions(result.records);
+      setSessionsFailed(false);
     } catch {
       setSessionsFailed(true);
     } finally {
@@ -147,6 +146,12 @@ export function SecuritySettings({
   useEffect(() => {
     void loadSessions();
   }, [loadSessions]);
+
+  function retrySessions(): void {
+    setSessionsPending(true);
+    setSessionsFailed(false);
+    void loadSessions();
+  }
 
   const formatDate = formatDateTime ?? ((iso: string) => new Date(iso).toLocaleString());
 
@@ -229,7 +234,7 @@ export function SecuritySettings({
           ) : sessionsFailed ? (
             <div className="flex flex-wrap items-center gap-2 text-sm text-destructive">
               {labels.loadSessionsFailed}
-              <Button type="button" variant="link" size="sm" className="h-auto p-0" onClick={() => void loadSessions()}>
+              <Button type="button" variant="link" size="sm" className="h-auto p-0" onClick={retrySessions}>
                 {labels.retry}
               </Button>
             </div>
