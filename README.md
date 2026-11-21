@@ -23,9 +23,13 @@ out `ref`, and copies each item's files to their project-relative targets. Set
 
 ## Items
 
-| Item         | Targets                     | Description                                                       |
-| ------------ | --------------------------- | ----------------------------------------------------------------- |
-| `login-page` | `src/modules/login-page/**` | Password/code login, inline TOTP challenge, third-party providers |
+| Item                   | Targets                               | Description                                                                     |
+| ---------------------- | ------------------------------------- | ------------------------------------------------------------------------------- |
+| `login-page`           | `src/modules/login-page/**`           | Password/code login, inline TOTP challenge, third-party providers               |
+| `forgot-password`      | `src/modules/forgot-password/**`      | Email plus verification code password reset with a live strength checklist      |
+| `profile-settings`     | `src/modules/profile-settings/**`     | Account profile card: names and display name, persisted by the host             |
+| `security-settings`    | `src/modules/security-settings/**`    | Active sessions with per-row sign-out, and authenticator-app enrollment         |
+| `preferences-settings` | `src/modules/preferences-settings/**` | Interface language, theme and timezone, with host-side cache and cookie updates |
 
 An item directory mirrors the target layout: `login-page/src/modules/login-page/login-page.tsx`
 is copied to `src/modules/login-page/login-page.tsx` in the host.

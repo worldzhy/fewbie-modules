@@ -1,0 +1,14 @@
+{
+  "name": "preferences-settings",
+  "type": "registry:block",
+  "title": "Preferences settings cards",
+  "description": "Account display preferences: interface language, theme and timezone. Persistence and the side effects of each change (locale cookie, theme class, cache refresh) stay in the host.",
+  "dependencies": [],
+  "registryDependencies": [],
+  "files": [
+    "src/modules/preferences-settings/index.ts",
+    "src/modules/preferences-settings/types.ts",
+    "src/modules/preferences-settings/preferences-settings.tsx"
+  ],
+  "postInstall": "Render <PreferencesSettings labels={...} values={...} languages={...} port={...} /> inside your settings shell. The host supplies translated labels and language options, a saveLanguage/saveTheme/saveTimezone port, and applies the changed preference from the on* callbacks. Requires the shadcn ui primitives button, card, input, label and select."
+}

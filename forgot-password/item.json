@@ -1,0 +1,14 @@
+{
+  "name": "forgot-password",
+  "type": "registry:block",
+  "title": "Forgot password page",
+  "description": "Page-level password reset block: email and verification code plus a new password with a live strength checklist. Transport and navigation come from the host through props.",
+  "dependencies": [],
+  "registryDependencies": [],
+  "files": [
+    "src/modules/forgot-password/index.ts",
+    "src/modules/forgot-password/types.ts",
+    "src/modules/forgot-password/forgot-password.tsx"
+  ],
+  "postInstall": "Render <ForgotPasswordPage labels={...} port={...} /> inside your auth shell. The host supplies translated labels, a sendResetCode/resetPassword port, an optional initialEmail and navigates from onReset/onBack. Requires the shadcn ui primitives button, card, input and label."
+}
