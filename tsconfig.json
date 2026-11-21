@@ -16,5 +16,12 @@
       "@/*": ["./harness/*"]
     }
   },
-  "include": ["harness", "vitest.config.ts", "scripts", "*/src/**/*.ts", "*/src/**/*.tsx", "*/test/**/*.tsx"]
+  "include": [
+    "harness",
+    "vitest.config.ts",
+    "scripts",
+    "packages/modules/*/src/**/*.ts",
+    "packages/modules/*/src/**/*.tsx",
+    "packages/modules/*/test/**/*.tsx"
+  ]
 }

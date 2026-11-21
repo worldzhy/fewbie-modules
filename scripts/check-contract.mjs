@@ -18,12 +18,12 @@ import ts from "typescript";
 const ALLOWED_STATES = new Set(["loading", "error", "empty", "success", "ready"]);
 const SEMVER = /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/;
 const SEMVER_RANGE = /^(?:[\^~]?\d|[<>=*])/;
-/** Root directories that are registry infrastructure, never item candidates. */
-const ROOT_INFRASTRUCTURE = new Set(["harness", "node_modules", "scripts"]);
+/** Container directory holding every authored item (ADR-059). */
+const ITEMS_DIR = path.join("packages", "modules");
 /** Item-private directories that are not part of the installable payload. */
 const ITEM_INFRASTRUCTURE = new Set(["test", "node_modules"]);
 
-const root = process.cwd();
+const root = path.join(process.cwd(), ITEMS_DIR);
 const errors = [];
 const warnings = [];
 const checked = [];
@@ -196,9 +196,18 @@ async function checkItem(name) {
   checked.push(name);
 }
 
+const itemsRootExists = await fs
+  .access(root)
+  .then(() => true)
+  .catch(() => false);
+if (!itemsRootExists) {
+  console.error(`Contract check failed: ${ITEMS_DIR} is missing; run this from the registry repository root.`);
+  process.exit(1);
+}
+
 const entries = await fs.readdir(root, { withFileTypes: true });
 for (const entry of entries) {
-  if (!entry.isDirectory() || entry.name.startsWith(".") || ROOT_INFRASTRUCTURE.has(entry.name)) {
+  if (!entry.isDirectory() || entry.name.startsWith(".")) {
     continue;
   }
   const hasManifest = await fs

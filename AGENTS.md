@@ -4,9 +4,9 @@
 
 fewbie module registry: the single authored store for fewbie items, at both
 page level (`src/modules/**`) and lib/component level (`src/lib/**`,
-`src/components/**`). The repository root is the registry root; each item
-directory carries `item.json` and the source files it ships, laid out to mirror
-the host target path.
+`src/components/**`). Items live under `packages/modules/` (ADR-059 in
+`devbie`); each item directory carries `item.json` and the source files it
+ships, laid out to mirror the host target path.
 
 `@devbie/fewbie-cli` ships a generated snapshot of this repository for hosts
 that declare no registry (ADR-058 in `devbie`). Author every item here; the
@@ -22,14 +22,16 @@ A directory belongs here only when all of these hold:
   No host i18n, router, transport, toast, or state library imports.
 - It is copy-assemblable: the host renders the exported component with props
   and adds no hand-written adapter beyond the ports the item documents.
-- Item files mirror their target path (`login-page/src/modules/login-page/*`
-  lands at `src/modules/login-page/*`), so the CLI copies them verbatim.
+- Item files mirror their target path
+  (`packages/modules/login-page/src/modules/login-page/*` lands at
+  `src/modules/login-page/*`), so the CLI copies them verbatim.
 
 ## Registry layout
 
 Only `item.json` and the files in its `files` array are installed. Registry
-infrastructure never reaches a host: `<item>/test/`, `harness/`, `scripts/`,
-and the root `package.json` / `vitest.config.ts` / `tsconfig.json`.
+infrastructure never reaches a host: `packages/modules/<item>/test/`,
+`harness/`, `scripts/`, and the root `package.json` / `vitest.config.ts` /
+`tsconfig.json`.
 `scripts/check-contract.mjs` enforces this — directory name equals
 `item.json.name`, `files` paths are safe and exist, and the on-disk payload
 (minus `test/`) matches `files` exactly. Items without a `contract` warn and
@@ -40,7 +42,7 @@ skip only the contract comparison.
 - Branch: `dev`; `main` is the ref hosts pin, so merge `dev` -> `main` only
   when an item is ready to install.
 - Never edit an installed copy in a host; change the item here and reinstall.
-- `npm run format:check` does not exist in this repository; format with the
-  devbie prettier config (2 spaces, double quotes, semicolons, 120 columns).
+- `npm run format:check` is the pre-commit gate; `npm run format` writes with
+  the devbie prettier config (2 spaces, double quotes, semicolons, 120 columns).
 - This repository publishes no npm packages. Hosts consume it through
   `fewbie.json`'s `registry` declaration.

@@ -3,9 +3,9 @@
 The single authored registry for [fewbie](https://github.com/worldzhy/devbie)
 applications — both page-level modules and lib/component items.
 
-The repository root **is** the registry root, and every directory holding an
-`item.json` is one installable item. A host declares it in `fewbie.json` and
-installs with the CLI:
+Items live in `packages/modules/`, and every directory there holding an
+`item.json` is one installable item. A host declares the registry in
+`fewbie.json` and installs with the CLI:
 
 ```json
 {
@@ -45,8 +45,9 @@ snapshot is regenerated, never hand-edited (ADR-058 in `devbie`).
 | `sse-stream`              | `src/lib/sse-stream.ts`                                                | POST-based Server-Sent Events transport                                         |
 | `theme`                   | `src/components/theme-provider.tsx`, `src/components/theme-toggle.tsx` | next-themes provider and light/dark toggle                                      |
 
-An item directory mirrors the target layout: `login-page/src/modules/login-page/login-page.tsx`
-is copied to `src/modules/login-page/login-page.tsx` in the host.
+An item directory mirrors the target layout:
+`packages/modules/login-page/src/modules/login-page/login-page.tsx` is copied to
+`src/modules/login-page/login-page.tsx` in the host.
 
 ## Registry layout
 
@@ -55,9 +56,9 @@ registry infrastructure and never reaches a host:
 
 | Path                                                | Role                                                          |
 | --------------------------------------------------- | ------------------------------------------------------------- |
-| `<item>/item.json`                                  | Manifest: `name`, `type`, `files`, optional `contract`        |
-| `<item>/<file>`                                     | Payload, mirroring the host target path in `files`            |
-| `<item>/test/`                                      | Conformance tests for that item                               |
+| `packages/modules/<item>/item.json`                 | Manifest: `name`, `type`, `files`, optional `contract`        |
+| `packages/modules/<item>/<file>`                    | Payload, mirroring the host target path in `files`            |
+| `packages/modules/<item>/test/`                     | Conformance tests for that item                               |
 | `harness/`                                          | Shared vitest + jsdom harness and `@/components/ui/*` doubles |
 | `scripts/`                                          | `check-contract.mjs`                                          |
 | `package.json`, `vitest.config.ts`, `tsconfig.json` | Tooling for this repository                                   |

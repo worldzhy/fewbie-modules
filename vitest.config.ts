@@ -19,7 +19,7 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./harness/setup.ts"],
-    include: ["*/test/**/*.test.tsx"],
+    include: ["packages/modules/*/test/**/*.test.tsx"],
     css: false,
   },
 });
