@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
-import { isStrongPassword } from "../packages/modules/password-checklist/src/components/password-checklist";
+import { isStrongPassword } from "../packages/modules/password-checklist/src/modules/password-checklist/password-checklist";
 
 /**
  * `password-checklist` and `forgot-password` each carry the password policy.

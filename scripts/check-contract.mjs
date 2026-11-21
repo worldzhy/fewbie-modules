@@ -65,7 +65,6 @@ const FRAMEWORK_PACKAGES = new Set([
   "class-variance-authority",
   "clsx",
   "lucide-react",
-  "next",
   "radix-ui",
   "react",
   "react-dom",
