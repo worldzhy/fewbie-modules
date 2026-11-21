@@ -38,10 +38,10 @@ snapshot is regenerated, never hand-edited (ADR-058 in `devbie`).
 | `auth`                    | `src/lib/auth.ts`                                                      | Login/logout helpers and session-expired redirect binding                       |
 | `data-table`              | `src/components/data-table.tsx`                                        | Generic data table with client-side sorting and pagination                      |
 | `frontend-monitor-sdk`    | `src/components/frontend-monitor.tsx`                                  | Browser-side monitoring component for the root layout                           |
-| `login-form`              | `src/components/login-form.tsx`                                        | Password login card built on the `auth` util                                    |
-| `password-checklist`      | `src/components/password-checklist.tsx`                                | Live password rule checklist with a reusable predicate                          |
+| `login-form`              | `src/modules/login-form/**`                                            | Password login card built on the `auth` util                                    |
+| `password-checklist`      | `src/modules/password-checklist/**`                                    | Live password rule checklist with a reusable predicate                          |
 | `query-client`            | `src/lib/query-client.ts`, `src/components/query-provider.tsx`         | TanStack Query client with App Router wiring                                    |
-| `settings-required-state` | `src/components/settings-required-state.tsx`                           | Empty state for missing required configuration                                  |
+| `settings-required-state` | `src/modules/settings-required-state/**`                               | Empty state for missing required configuration                                  |
 | `sse-stream`              | `src/lib/sse-stream.ts`                                                | POST-based Server-Sent Events transport                                         |
 | `theme`                   | `src/components/theme-provider.tsx`, `src/components/theme-toggle.tsx` | next-themes provider and light/dark toggle                                      |
 

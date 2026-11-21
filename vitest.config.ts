@@ -17,8 +17,6 @@ export default defineConfig({
       "@/lib/query-client": fileURLToPath(
         new URL("./packages/modules/query-client/src/lib/query-client.ts", import.meta.url),
       ),
-      "next/navigation": fileURLToPath(new URL("./harness/next-navigation.ts", import.meta.url)),
-      "next/link": fileURLToPath(new URL("./harness/next-link.tsx", import.meta.url)),
       "@": fileURLToPath(new URL("./harness", import.meta.url)),
     },
   },
