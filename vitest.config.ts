@@ -4,9 +4,10 @@ import { defineConfig } from "vitest/config";
 /**
  * Conformance harness for the registry items.
  *
- * `@/components/ui/*` resolves to `harness/components/ui/*` test doubles, so an
- * item is exercised against the fewbie framework surface without pulling
- * Tailwind, Radix or the host design tokens into this repository.
+ * `@` resolves to `harness/framework`, the double of the host surface, so an item
+ * is exercised against the fewbie framework without pulling Tailwind, Radix or
+ * the host design tokens into this repository. `@testing` is this repository's
+ * own test toolkit and never looks like a framework module to an item.
  */
 export default defineConfig({
   resolve: {
@@ -25,14 +26,15 @@ export default defineConfig({
       "@/modules/password-checklist": fileURLToPath(
         new URL("./packages/modules/password-checklist/src/modules/password-checklist/index.ts", import.meta.url),
       ),
-      "@": fileURLToPath(new URL("./harness", import.meta.url)),
+      "@testing": fileURLToPath(new URL("./harness/testing", import.meta.url)),
+      "@": fileURLToPath(new URL("./harness/framework", import.meta.url)),
     },
   },
   oxc: { jsx: { runtime: "automatic" } },
   test: {
     environment: "jsdom",
     globals: true,
-    setupFiles: ["./harness/setup.ts"],
+    setupFiles: ["./harness/testing/setup.ts"],
     include: ["packages/modules/*/test/**/*.test.{ts,tsx}", "test/**/*.test.ts"],
     css: false,
   },

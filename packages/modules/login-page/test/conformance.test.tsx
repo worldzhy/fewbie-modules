@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { expectNoViolations } from "@/a11y";
-import { makeLabels } from "@/labels";
-import { deferred, render, screen, userEvent, waitFor } from "@/render";
+import { expectNoViolations } from "@testing/a11y";
+import { deferred } from "@testing/deferred";
+import { makeLabels } from "@testing/labels";
+import { render, screen, userEvent, waitFor } from "@testing/render";
 import { LoginPage } from "../src/modules/login-page/login-page";
 import type { LoginLabels, LoginPort } from "../src/modules/login-page/types";
 

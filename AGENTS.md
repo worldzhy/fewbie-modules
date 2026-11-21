@@ -29,8 +29,10 @@ A directory belongs here only when all of these hold:
 ## Registry layout
 
 Only `fewbie.module.json` and the files in its `files` array are installed. Registry
-infrastructure never reaches a host: `packages/modules/<item>/test/`,
-`harness/`, `scripts/`, and the root `package.json` / `vitest.config.ts` /
+infrastructure never reaches a host: item tests (`packages/modules/<item>/test/`), the
+repository-root `harness/` (its `framework/` tree doubles the host surface that
+`check:types` and vitest compile against; its `testing/` tree is repository-private and
+imported as `@testing/*`), `scripts/`, and the root `package.json` / `vitest.config.ts` /
 `tsconfig.json`.
 `scripts/check-contract.mjs` enforces this — directory name equals
 `fewbie.module.json.name`, `files` paths are safe and exist, and the on-disk payload

@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { Bell } from "lucide-react";
 
-import { makeLabels } from "@/labels";
-import { deferred, render, screen, userEvent, waitFor } from "@/render";
+import { deferred } from "@testing/deferred";
+import { makeLabels } from "@testing/labels";
+import { render, screen, userEvent, waitFor } from "@testing/render";
 import { NotificationBell } from "../src/components/notification-center/notification-bell";
 import { NotificationCenterProvider } from "../src/components/notification-center/notification-center";
 import type {

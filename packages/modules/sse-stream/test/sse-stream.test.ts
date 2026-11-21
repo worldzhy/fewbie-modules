@@ -1,17 +1,11 @@
-import { consumeSseStream } from "../src/lib/sse-stream";
+import { deferred } from "@testing/deferred";
 
-function deferred(): { promise: Promise<void>; resolve: () => void } {
-  let resolve!: () => void;
-  const promise = new Promise<void>((settle) => {
-    resolve = settle;
-  });
-  return { promise, resolve };
-}
+import { consumeSseStream } from "../src/lib/sse-stream";
 
 test("concurrent streams do not steal each other's multibyte bytes", async () => {
   const encoder = new TextEncoder();
-  const firstChunkRead = deferred();
-  const releaseSecondChunk = deferred();
+  const firstChunkRead = deferred<void>();
+  const releaseSecondChunk = deferred<void>();
   const signal = new AbortController().signal;
 
   const bytesA = encoder.encode("data: 你好\n\n");
