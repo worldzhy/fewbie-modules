@@ -1,0 +1,14 @@
+{
+  "name": "login-page",
+  "type": "registry:block",
+  "title": "Login page",
+  "description": "Page-level login block: password and verification-code tabs, inline TOTP challenge and third-party provider entries. Transport, navigation and copy come from the host through props.",
+  "dependencies": [],
+  "registryDependencies": [],
+  "files": [
+    "src/modules/login-page/index.ts",
+    "src/modules/login-page/types.ts",
+    "src/modules/login-page/login-page.tsx"
+  ],
+  "postInstall": "Render <LoginPage labels={...} port={...} /> inside your auth shell. The host supplies translated labels, a signIn/sendVerificationCode port, optional notices and oauthProviders, and navigates from onSignedIn. Requires the shadcn ui primitives button, card, input, label and tabs."
+}
