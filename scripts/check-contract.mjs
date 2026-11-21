@@ -71,6 +71,12 @@ const FRAMEWORK_PACKAGES = new Set([
   "tailwind-merge",
 ]);
 /**
+ * Host runtime packages an item must never import. They only exist inside a
+ * Next.js host, so depending on one would make the item installable in that
+ * host only; declaring the dependency is not an escape hatch (R84-03).
+ */
+const HOST_PACKAGES = new Set(["next"]);
+/**
  * Alias targets the template owns. Items may import them without a registry
  * dependency because no item ships them; the coupling is declared here so a new
  * framework path is a reviewed change rather than an invisible one (R82-13).
@@ -87,6 +93,7 @@ const root = path.join(process.cwd(), ITEMS_DIR);
 const errors = [];
 const warnings = [];
 const checked = [];
+const skipped = [];
 /** Parsed manifest of every item, keyed by directory name (built before checks). */
 const manifests = new Map();
 
@@ -257,6 +264,10 @@ function checkImports(name, manifest, declared, sources) {
       continue;
     }
     const pkg = packageName(specifier);
+    if (HOST_PACKAGES.has(pkg)) {
+      fail(name, `imports host package '${pkg}'; registry items must not depend on the host framework`);
+      continue;
+    }
     if (FRAMEWORK_PACKAGES.has(pkg) || declaredPackages.has(pkg)) continue;
     fail(name, `imports '${specifier}' but manifest.dependencies does not declare '${pkg}'`);
   }
@@ -340,8 +351,14 @@ async function checkItem(name) {
 
   const contract = manifest.contract;
   if (contract === undefined) {
-    warn(name, "fewbie.module.json has no contract; contract checks skipped (R79-01)");
-    checked.push(name);
+    // A block is a host-facing surface; without a contract its labels, ports
+    // and states are unverified. Copy-only lib/component items may skip.
+    if (manifest.type === "registry:block") {
+      fail(name, "registry:block items must declare a contract");
+    } else {
+      warn(name, "fewbie.module.json has no contract; contract checks skipped (R79-01)");
+    }
+    skipped.push(name);
     return;
   }
 
@@ -425,4 +442,8 @@ if (errors.length > 0) {
   console.error(`Contract check failed:\n  ${errors.join("\n  ")}`);
   process.exit(1);
 }
-console.log(`✓ ${checked.length} item contract(s) match their types.ts interface: ${checked.sort().join(", ")}`);
+console.log(
+  `✓ ${checked.length} item contract(s) match their types.ts interface: ${checked.sort().join(", ")}${
+    skipped.length > 0 ? ` (${skipped.length} item(s) skipped: no contract — ${skipped.sort().join(", ")})` : ""
+  }`,
+);

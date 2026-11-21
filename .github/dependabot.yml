@@ -1,0 +1,56 @@
+# Dependabot configuration for the fewbie module registry.
+#
+# This repository is the single authored store for fewbie items (ADR-059 in
+# worldzhy/devbie). Dependabot watches the npm toolchain (TypeScript, Vitest,
+# Testing Library, React) and GitHub Actions so the contract gate keeps
+# running on a current, CVE-clean toolchain.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    target-branch: "dev"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "05:30"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 10
+    versioning-strategy: increase
+    labels:
+      - "dependencies"
+    # Group patch-level bumps to reduce PR noise; minor/major stay separate
+    # so breaking changes get individual review.
+    groups:
+      patch-updates:
+        update-types:
+          - "patch"
+      # react and react-dom must always move in lockstep (react-dom pins a
+      # peer on the exact react version).
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+    # Policy: no major upgrades by default. Majors are milestone-driven
+    # (CVE / feature need / ecosystem EOL) and executed as verified
+    # milestones on dev, never via automated PRs — CI cannot observe
+    # behavior-level regressions in items that hosts copy verbatim.
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - "version-update:semver-major"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    target-branch: "dev"
+    schedule:
+      interval: "monthly"
+      time: "05:30"
+      timezone: "Asia/Shanghai"
+    labels:
+      - "ci"
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - "version-update:semver-major"

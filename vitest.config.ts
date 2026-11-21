@@ -17,6 +17,14 @@ export default defineConfig({
       "@/lib/query-client": fileURLToPath(
         new URL("./packages/modules/query-client/src/lib/query-client.ts", import.meta.url),
       ),
+      "@/lib/sse-stream": fileURLToPath(
+        new URL("./packages/modules/sse-stream/src/lib/sse-stream.ts", import.meta.url),
+      ),
+      // Cross-item imports go through the item's public entry (forgot-password
+      // reuses password-checklist's predicate).
+      "@/modules/password-checklist": fileURLToPath(
+        new URL("./packages/modules/password-checklist/src/modules/password-checklist/index.ts", import.meta.url),
+      ),
       "@": fileURLToPath(new URL("./harness", import.meta.url)),
     },
   },
@@ -25,7 +33,7 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./harness/setup.ts"],
-    include: ["packages/modules/*/test/**/*.test.tsx", "test/**/*.test.ts"],
+    include: ["packages/modules/*/test/**/*.test.{ts,tsx}", "test/**/*.test.ts"],
     css: false,
   },
 });
