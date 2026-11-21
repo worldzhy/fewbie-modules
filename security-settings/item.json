@@ -10,5 +10,40 @@
     "src/modules/security-settings/types.ts",
     "src/modules/security-settings/security-settings.tsx"
   ],
+  "contract": {
+    "version": "1.0.0",
+    "framework": "^1.7.0",
+    "entry": "src/modules/security-settings/index.ts",
+    "labels": [
+      "activeSessions",
+      "loadingSessions",
+      "loadSessionsFailed",
+      "noSessions",
+      "unknownDevice",
+      "thisDevice",
+      "signOutSession",
+      "twoFactorTitle",
+      "statusEnabled",
+      "statusDisabled",
+      "twoFactorDesc",
+      "qrAlt",
+      "scanQr",
+      "enterCode",
+      "confirmEnable",
+      "currentPassword",
+      "passwordPlaceholder",
+      "or",
+      "authenticatorCode",
+      "disable",
+      "disableTwoFactor",
+      "setupWithApp",
+      "cancel",
+      "retry",
+      "actionFailed"
+    ],
+    "ports": ["listSessions", "revokeSession", "setupTwoFactor", "enableTwoFactor", "disableTwoFactor"],
+    "ui": ["badge", "button", "card", "input", "label"],
+    "states": ["loading", "error", "empty", "ready"]
+  },
   "postInstall": "Render <SecuritySettings labels={...} twoFactorEnabled={...} port={...} /> inside your settings shell. The host supplies translated labels, a sessions/two-factor port and an optional formatDateTime; onSessionsChanged/onTwoFactorChanged let it refresh its cache. Requires the shadcn ui primitives badge, button, card, input and label."
 }
