@@ -16,6 +16,67 @@ import path from "node:path";
 import ts from "typescript";
 
 const ALLOWED_STATES = new Set(["loading", "error", "empty", "success", "ready"]);
+/**
+ * Evidence that a declared state is implemented. Items name states the way
+ * their UI does (`pending`, `failed`, `noSessions`), so a plain token match is
+ * wrong; each state accepts its common spellings (R82-14). `ready` is the
+ * default rendered view and has no separate token, hence no pattern.
+ */
+const STATE_EVIDENCE = {
+  loading: /(loading|pending|submitting|isFetching|skeleton)/i,
+  error: /(error|failed|failure|isError)/i,
+  empty: /(\bempty\b|\bno[A-Z][A-Za-z0-9]*\b|!\s*\w+\??\.length\b|\.length\s*===?\s*0)/,
+  success: /(success|succeeded|isSuccess)/i,
+  ready: undefined,
+};
+/**
+ * shadcn/ui primitives the framework ships. An item renders against this list
+ * only; a new primitive must be added here (and to the template) deliberately.
+ */
+const ALLOWED_UI = new Set([
+  "alert",
+  "alert-dialog",
+  "avatar",
+  "badge",
+  "button",
+  "card",
+  "checkbox",
+  "dialog",
+  "dropdown-menu",
+  "input",
+  "label",
+  "progress",
+  "select",
+  "separator",
+  "sheet",
+  "skeleton",
+  "switch",
+  "table",
+  "tabs",
+  "textarea",
+  "tooltip",
+]);
+/**
+ * Package names the framework runtime or the shadcn-initialized template always
+ * provide. Any other bare import must be declared in `dependencies`, otherwise a
+ * host installs the item and its build fails on the missing package (R82-13).
+ */
+const FRAMEWORK_PACKAGES = new Set([
+  "class-variance-authority",
+  "clsx",
+  "lucide-react",
+  "next",
+  "radix-ui",
+  "react",
+  "react-dom",
+  "tailwind-merge",
+]);
+/**
+ * Alias targets the template owns. Items may import them without a registry
+ * dependency because no item ships them; the coupling is declared here so a new
+ * framework path is a reviewed change rather than an invisible one (R82-13).
+ */
+const FRAMEWORK_MODULES = new Set(["@/lib/api-client", "@/lib/utils"]);
 const SEMVER = /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/;
 const SEMVER_RANGE = /^(?:[\^~]?\d|[<>=*])/;
 /** Container directory holding every authored item (ADR-059). */
@@ -27,6 +88,8 @@ const root = path.join(process.cwd(), ITEMS_DIR);
 const errors = [];
 const warnings = [];
 const checked = [];
+/** Parsed manifest of every item, keyed by directory name (built before checks). */
+const manifests = new Map();
 
 function fail(item, message) {
   errors.push(`${item}: ${message}`);
@@ -36,8 +99,25 @@ function warn(item, message) {
   warnings.push(`${item}: ${message}`);
 }
 
+function duplicates(list) {
+  const seen = new Set();
+  const repeated = new Set();
+  for (const entry of list) {
+    if (seen.has(entry)) repeated.add(entry);
+    seen.add(entry);
+  }
+  return [...repeated];
+}
+
 function compare(item, field, declared, actual) {
-  const expected = [...new Set(declared)].sort();
+  // A duplicate is a real defect: the host would be asked for the same label or
+  // port twice, and a Set-based comparison used to hide it (R82-14).
+  const declaredDuplicates = duplicates(declared);
+  if (declaredDuplicates.length > 0) fail(item, `contract.${field} repeats ${declaredDuplicates.join(", ")}`);
+  const actualDuplicates = duplicates([...actual]);
+  if (actualDuplicates.length > 0) fail(item, `types.ts ${field} repeats ${actualDuplicates.join(", ")}`);
+
+  const expected = [...declared].sort();
   const found = [...actual].sort();
   const missing = expected.filter((entry) => !found.includes(entry));
   const extra = found.filter((entry) => !expected.includes(entry));
@@ -105,6 +185,84 @@ async function collectUiAtoms(directory) {
   return atoms;
 }
 
+/** Read the declared payload's TypeScript sources (test dir excluded). */
+async function declaredSources(directory, files) {
+  const sources = [];
+  for (const file of files) {
+    if (!/\.(ts|tsx)$/.test(file)) continue;
+    const source = await fs.readFile(path.join(directory, file), "utf8").catch(() => undefined);
+    if (source !== undefined) sources.push({ file, source });
+  }
+  return sources;
+}
+
+/** Import specifiers used by the declared payload. */
+function importSpecifiers(sources) {
+  const specifiers = new Set();
+  for (const { source } of sources) {
+    for (const match of source.matchAll(/\bfrom\s+"([^"]+)"/g)) specifiers.add(match[1]);
+    for (const match of source.matchAll(/\bimport\s+"([^"]+)"/g)) specifiers.add(match[1]);
+  }
+  return specifiers;
+}
+
+function packageName(specifier) {
+  const parts = specifier.split("/");
+  return specifier.startsWith("@") ? parts.slice(0, 2).join("/") : parts[0];
+}
+
+/** A `dependencies` entry carries a version suffix; compare the package only. */
+function declaredPackageName(specifier) {
+  const scopeEnd = specifier.startsWith("@") ? specifier.indexOf("/") : -1;
+  const versionAt = specifier.indexOf("@", scopeEnd + 1);
+  return versionAt === -1 ? specifier : specifier.slice(0, versionAt);
+}
+
+/** True when some installed file provides the `@/` alias target. */
+function aliasIsProvided(target, files) {
+  return [...files].some(
+    (file) =>
+      file === target ||
+      file === `${target}.ts` ||
+      file === `${target}.tsx` ||
+      file === `${target}/index.ts` ||
+      file === `${target}/index.tsx`,
+  );
+}
+
+/**
+ * Every import must resolve to something the host will actually have: a
+ * framework package, a declared npm dependency, a shadcn primitive, an
+ * allowlisted framework module, or a file shipped by the item or one of its
+ * registry dependencies (R82-13).
+ */
+function checkImports(name, manifest, declared, sources) {
+  const declaredPackages = new Set((manifest.dependencies ?? []).map((dependency) => declaredPackageName(dependency)));
+  const dependencyFiles = new Set();
+  for (const dependency of manifest.registryDependencies ?? []) {
+    for (const file of manifests.get(dependency)?.files ?? []) dependencyFiles.add(file);
+  }
+
+  for (const specifier of importSpecifiers(sources)) {
+    if (specifier.startsWith(".") || specifier.startsWith("node:")) continue;
+    if (specifier.startsWith("@/components/ui/")) {
+      const atom = specifier.slice("@/components/ui/".length);
+      if (!ALLOWED_UI.has(atom)) fail(name, `imports ui primitive '${atom}', which is not on the framework allowlist`);
+      continue;
+    }
+    if (specifier.startsWith("@/")) {
+      if (FRAMEWORK_MODULES.has(specifier)) continue;
+      const target = `src/${specifier.slice(2)}`;
+      if (aliasIsProvided(target, declared) || aliasIsProvided(target, dependencyFiles)) continue;
+      fail(name, `imports '${specifier}' but no installed file or registryDependency provides it`);
+      continue;
+    }
+    const pkg = packageName(specifier);
+    if (FRAMEWORK_PACKAGES.has(pkg) || declaredPackages.has(pkg)) continue;
+    fail(name, `imports '${specifier}' but manifest.dependencies does not declare '${pkg}'`);
+  }
+}
+
 /** Every installable file under `<item>/`, as project-relative POSIX paths. */
 async function payloadFiles(directory) {
   const files = [];
@@ -145,7 +303,7 @@ function normalizeFile(item, file) {
 
 async function checkItem(name) {
   const directory = path.join(root, name);
-  const manifest = JSON.parse(await fs.readFile(path.join(directory, "fewbie.module.json"), "utf8"));
+  const manifest = manifests.get(name);
   if (manifest.name !== name) {
     fail(name, `fewbie.module.json name '${manifest.name}' does not match its directory '${name}'`);
   }
@@ -161,9 +319,29 @@ async function checkItem(name) {
   }
   comparePayload(name, declared, await payloadFiles(directory));
 
+  for (const field of ["dependencies", "registryDependencies"]) {
+    const list = manifest[field];
+    if (list === undefined) continue;
+    if (!Array.isArray(list)) {
+      fail(name, `${field} must be an array`);
+      continue;
+    }
+    for (const entry of list) {
+      if (typeof entry !== "string" || entry.length === 0) fail(name, `${field} entries must be non-empty strings`);
+    }
+  }
+  for (const dependency of manifest.registryDependencies ?? []) {
+    if (!manifests.has(dependency)) {
+      fail(name, `registryDependencies lists '${dependency}', which is not an item in this registry`);
+    }
+  }
+
+  const sources = await declaredSources(directory, declared);
+  checkImports(name, manifest, declared, sources);
+
   const contract = manifest.contract;
   if (contract === undefined) {
-    warn(name, "fewbie.module.json has no contract; contract checks skipped");
+    warn(name, "fewbie.module.json has no contract; contract checks skipped (R79-01)");
     checked.push(name);
     return;
   }
@@ -174,8 +352,24 @@ async function checkItem(name) {
   if (entry === undefined || !declared.includes(entry))
     fail(name, `contract.entry '${contract.entry}' is not an installed file`);
 
-  for (const state of contract.states) {
+  for (const field of ["labels", "ports", "ui", "states"]) {
+    if (!Array.isArray(contract[field])) fail(name, `contract.${field} must be an array`);
+  }
+
+  for (const state of Array.isArray(contract.states) ? contract.states : []) {
     if (!ALLOWED_STATES.has(state)) fail(name, `contract.states '${state}' is not allowed`);
+  }
+  for (const atom of Array.isArray(contract.ui) ? contract.ui : []) {
+    if (!ALLOWED_UI.has(atom)) fail(name, `contract.ui '${atom}' is not on the framework allowlist`);
+  }
+  // A state is a behaviour claim, not a vocabulary choice: the payload must
+  // actually implement it (R82-14).
+  const sourceText = sources.map((source) => source.source).join("\n");
+  for (const state of Array.isArray(contract.states) ? contract.states : []) {
+    const evidence = STATE_EVIDENCE[state];
+    if (evidence !== undefined && !evidence.test(sourceText)) {
+      fail(name, `contract.states declares '${state}' but no installed file implements it`);
+    }
   }
 
   const typesPath = path.join(directory, "src", "modules", name, "types.ts");
@@ -206,6 +400,7 @@ if (!itemsRootExists) {
 }
 
 const entries = await fs.readdir(root, { withFileTypes: true });
+const itemNames = [];
 for (const entry of entries) {
   if (!entry.isDirectory() || entry.name.startsWith(".")) {
     continue;
@@ -214,8 +409,14 @@ for (const entry of entries) {
     .access(path.join(root, entry.name, "fewbie.module.json"))
     .then(() => true)
     .catch(() => false);
-  if (hasManifest) await checkItem(entry.name);
+  if (hasManifest) itemNames.push(entry.name);
 }
+// Parse every manifest first: import checks and registryDependencies validation
+// need to see items other than the one being checked.
+for (const name of itemNames) {
+  manifests.set(name, JSON.parse(await fs.readFile(path.join(root, name, "fewbie.module.json"), "utf8")));
+}
+for (const name of itemNames) await checkItem(name);
 
 if (warnings.length > 0) {
   console.warn(`Contract check warnings:\n  ${warnings.join("\n  ")}`);
