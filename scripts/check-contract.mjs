@@ -45,6 +45,7 @@ const ALLOWED_UI = new Set([
   "dropdown-menu",
   "input",
   "label",
+  "popover",
   "progress",
   "select",
   "separator",
@@ -56,6 +57,17 @@ const ALLOWED_UI = new Set([
   "textarea",
   "tooltip",
 ]);
+/**
+ * Directory that holds an item's installable sources, per manifest type. A
+ * contract's `types.ts` lives under the same tree as the item it describes
+ * (ADR-063), so a component-level item is checked against its own types file
+ * instead of the page-level `src/modules/<name>/types.ts`.
+ */
+const ITEM_SOURCE_DIR = {
+  "registry:block": "modules",
+  "registry:component": "components",
+  "registry:lib": "lib",
+};
 /**
  * Package names the framework runtime or the shadcn-initialized template always
  * provide. Any other bare import must be declared in `dependencies`, otherwise a
@@ -349,6 +361,11 @@ async function checkItem(name) {
   const sources = await declaredSources(directory, declared);
   checkImports(name, manifest, declared, sources);
 
+  const sourceDir = ITEM_SOURCE_DIR[manifest.type];
+  if (sourceDir === undefined) {
+    fail(name, `type '${manifest.type}' is not one of ${Object.keys(ITEM_SOURCE_DIR).join(", ")}`);
+  }
+
   const contract = manifest.contract;
   if (contract === undefined) {
     // A block is a host-facing surface; without a contract its labels, ports
@@ -388,10 +405,11 @@ async function checkItem(name) {
     }
   }
 
-  const typesPath = path.join(directory, "src", "modules", name, "types.ts");
+  const typesRelative = `src/${sourceDir ?? "modules"}/${name}/types.ts`;
+  const typesPath = path.join(directory, typesRelative);
   const typesSource = await fs.readFile(typesPath, "utf8").catch(() => undefined);
   if (typesSource === undefined) {
-    fail(name, `contract is declared but 'src/modules/${name}/types.ts' does not exist`);
+    fail(name, `contract is declared but '${typesRelative}' does not exist`);
     checked.push(name);
     return;
   }

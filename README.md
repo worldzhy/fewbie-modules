@@ -28,22 +28,24 @@ snapshot is regenerated, never hand-edited (ADR-058 in `devbie`).
 
 ## Items
 
-| Item                      | Targets                                                                | Description                                                                     |
-| ------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `login-page`              | `src/modules/login-page/**`                                            | Password/code login, inline TOTP challenge, third-party providers               |
-| `forgot-password`         | `src/modules/forgot-password/**`                                       | Email plus verification code password reset with a live strength checklist      |
-| `profile-settings`        | `src/modules/profile-settings/**`                                      | Account profile card: names and display name, persisted by the host             |
-| `security-settings`       | `src/modules/security-settings/**`                                     | Active sessions with per-row sign-out, and authenticator-app enrollment         |
-| `preferences-settings`    | `src/modules/preferences-settings/**`                                  | Interface language, theme and timezone, with host-side cache and cookie updates |
-| `auth`                    | `src/lib/auth.ts`                                                      | Login/logout helpers and session-expired redirect binding                       |
-| `data-table`              | `src/components/data-table.tsx`                                        | Generic data table with client-side sorting and pagination                      |
-| `frontend-monitor-sdk`    | `src/components/frontend-monitor.tsx`                                  | Browser-side monitoring component for the root layout                           |
-| `login-form`              | `src/modules/login-form/**`                                            | Password login card built on the `auth` util                                    |
-| `password-checklist`      | `src/modules/password-checklist/**`                                    | Live password rule checklist with a reusable predicate                          |
-| `query-client`            | `src/lib/query-client.ts`, `src/components/query-provider.tsx`         | TanStack Query client with App Router wiring                                    |
-| `settings-required-state` | `src/modules/settings-required-state/**`                               | Empty state for missing required configuration                                  |
-| `sse-stream`              | `src/lib/sse-stream.ts`                                                | POST-based Server-Sent Events transport                                         |
-| `theme`                   | `src/components/theme-provider.tsx`, `src/components/theme-toggle.tsx` | next-themes provider and light/dark toggle                                      |
+| Item                      | Targets                                                                | Description                                                                                                   |
+| ------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `login-page`              | `src/modules/login-page/**`                                            | Password/code login, inline TOTP challenge, third-party providers                                             |
+| `forgot-password`         | `src/modules/forgot-password/**`                                       | Email plus verification code password reset with a live strength checklist                                    |
+| `profile-settings`        | `src/modules/profile-settings/**`                                      | Account profile card: names and display name, persisted by the host                                           |
+| `security-settings`       | `src/modules/security-settings/**`                                     | Active sessions with per-row sign-out, and authenticator-app enrollment                                       |
+| `preferences-settings`    | `src/modules/preferences-settings/**`                                  | Interface language, theme and timezone, with host-side cache and cookie updates                               |
+| `auth`                    | `src/lib/auth.ts`                                                      | Login/logout helpers and session-expired redirect binding                                                     |
+| `data-table`              | `src/components/data-table.tsx`                                        | Generic data table with client-side sorting and pagination                                                    |
+| `frontend-monitor-sdk`    | `src/components/frontend-monitor.tsx`                                  | Browser-side monitoring component for the root layout                                                         |
+| `login-form`              | `src/modules/login-form/**`                                            | Password login card built on the `auth` util                                                                  |
+| `password-checklist`      | `src/modules/password-checklist/**`                                    | Live password rule checklist with a reusable predicate                                                        |
+| `notification-center`     | `src/components/notification-center/**`                                | Header bell and unread ticker plus detail sheet/panel; data, copy and categories are host ports               |
+| `copilot`                 | `src/components/copilot/**`                                            | Resizable chat dock with tool cards, confirmations and result blocks; transport and page scope are host ports |
+| `query-client`            | `src/lib/query-client.ts`, `src/components/query-provider.tsx`         | TanStack Query client with App Router wiring                                                                  |
+| `settings-required-state` | `src/modules/settings-required-state/**`                               | Empty state for missing required configuration                                                                |
+| `sse-stream`              | `src/lib/sse-stream.ts`                                                | POST-based Server-Sent Events transport                                                                       |
+| `theme`                   | `src/components/theme-provider.tsx`, `src/components/theme-toggle.tsx` | next-themes provider and light/dark toggle                                                                    |
 
 An item directory mirrors the target layout:
 `packages/modules/login-page/src/modules/login-page/login-page.tsx` is copied to
@@ -74,8 +76,15 @@ payload (excluding `test/`) matches `files` exactly.
   `contract` in `fewbie.module.json`: `version`, `framework`, `entry`, `labels`,
   `ports`, `ui`, `states`. `types.ts` is the type truth, the contract is its
   executable projection, and `check-contract.mjs` asserts they agree.
-- `registry:lib` and `registry:component` items are copy-only today; they pass
-  the structural checks and only skip the contract comparison.
+- Component-level items (`registry:component` under `src/components/**`) may
+  declare the same `contract`; their `types.ts` lives next to the component
+  (`src/components/<name>/types.ts`). A component without a contract still
+  passes the structural checks and only skips the contract comparison
+  (ADR-063).
+- Business vocabulary stays out of items: notification keys, categories, skill
+  catalogs and route labels arrive through props (`resolveMeta`,
+  `categoryVisuals`, `pageContext`, `renderChart`), while navigation is
+  delegated to `onNavigate`/`onOpenLink` callbacks.
 - Modules depend only on the fewbie framework surface (`@/components/ui/*` and
   React); they never import a host's i18n, router, transport or toast library.
 - Copy, transport and side effects enter through props (`labels`, `port`,
