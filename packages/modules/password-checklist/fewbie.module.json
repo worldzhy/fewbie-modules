@@ -17,7 +17,7 @@
     "labels": ["requirements", "ruleLength", "ruleLowercase", "ruleUppercase", "ruleNumber", "ruleSymbol"],
     "ports": [],
     "ui": [],
-    "states": []
+    "states": ["ready"]
   },
   "postInstall": "Render <PasswordChecklist labels={...} password={...}> under password inputs (pairs with the login-form item in sign-up/change-password screens). The host supplies translated labels; the rules array is a manual mirror of the newbie account password policy, so sync it here when the backend strategy changes."
 }

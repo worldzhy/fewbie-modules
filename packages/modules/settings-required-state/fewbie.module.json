@@ -17,7 +17,7 @@
     "labels": ["actionLabel"],
     "ports": ["onOpenSettings"],
     "ui": ["button", "card"],
-    "states": []
+    "states": ["ready"]
   },
   "postInstall": "Render <SettingsRequiredState labels={...} title={...} settingsHref={...} onOpenSettings={...} /> wherever a feature needs its configuration first. The host supplies the translated action label, the in-app settings path and the navigation callback. Requires the shadcn ui primitives button and card."
 }
