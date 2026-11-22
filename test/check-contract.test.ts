@@ -30,6 +30,42 @@ function libItem(name: string, files: Record<string, string>, extra: Record<stri
   };
 }
 
+/**
+ * A feature with the minimum payload a contract needs: one labels interface,
+ * one entry file and a contract that matches both. Overrides narrow a test to
+ * the rule it exercises.
+ */
+function featureItem(
+  name: string,
+  files: Record<string, string> = {},
+  contract: Record<string, unknown> = {},
+): FixtureItem {
+  const payload = {
+    [`src/features/${name}/types.ts`]: `export interface ${name}Labels {\n  title: string;\n}\n`,
+    [`src/features/${name}/index.ts`]: "export const value = 1;\n",
+    ...files,
+  };
+  return {
+    name,
+    manifest: {
+      name,
+      type: "registry:feature",
+      files: Object.keys(payload),
+      contract: {
+        version: "1.0.0",
+        framework: "^1.0.0",
+        entry: `src/features/${name}/index.ts`,
+        labels: ["title"],
+        ports: [],
+        ui: [],
+        states: ["ready"],
+        ...contract,
+      },
+    },
+    files: payload,
+  };
+}
+
 interface GateResult {
   code: number;
   stdout: string;
@@ -208,6 +244,106 @@ describe("check-contract type and boundary gate", () => {
     ]);
     expect(result.code).toBe(1);
     expect(result.stderr).toContain("imports host package 'next'");
+  });
+});
+
+describe("check-contract install parity gate", () => {
+  it("accepts a contract the CLI parser accepts", async () => {
+    const result = await runGate([featureItem("valid")]);
+    expect(result.code).toBe(0);
+  });
+
+  it("fails when contract.framework is not a semver range", async () => {
+    const result = await runGate([featureItem("range", {}, { framework: ">>>" })]);
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain("is not a semver range");
+  });
+
+  it("fails when contract.framework excludes the shipping CLI", async () => {
+    const result = await runGate([featureItem("future", {}, { framework: "^99.0.0" })]);
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain("excludes the shipping CLI");
+  });
+
+  it("fails when contract.labels is empty", async () => {
+    const result = await runGate([featureItem("nolabels", {}, { labels: [] })]);
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain("contract.labels must not be empty");
+  });
+
+  it("fails when contract.states is empty", async () => {
+    const result = await runGate([featureItem("nostates", {}, { states: [] })]);
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain("contract.states must not be empty");
+  });
+
+  it("fails when a port is not a method name", async () => {
+    const result = await runGate([featureItem("badport", {}, { ports: ["not a method"] })]);
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain("is not a method name");
+  });
+
+  it("fails when a lib item installs into a feature directory", async () => {
+    const result = await runGate([
+      libItem("misplaced", { "src/features/misplaced/index.ts": "export const x = 1;\n" }),
+    ]);
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain("must land under src/lib/ or src/components/");
+  });
+
+  it("fails when files repeats an entry", async () => {
+    const item = libItem("dup", { "src/lib/dup.ts": "export const d = 1;\n" });
+    item.manifest.files = ["src/lib/dup.ts", "src/lib/dup.ts"];
+    const result = await runGate([item]);
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain("files declares 'src/lib/dup.ts' more than once");
+  });
+
+  it("reads single-quoted imports too", async () => {
+    const result = await runGate([
+      libItem("quoted", { "src/lib/quoted.ts": "import leftPad from 'left-pad';\nexport const x = leftPad;\n" }),
+    ]);
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain("manifest.dependencies does not declare 'left-pad'");
+  });
+
+  it("fails when a feature reaches a widget through a relative path", async () => {
+    const result = await runGate([
+      featureItem("relative", {
+        "src/features/relative/index.ts": 'import { dock } from "../../widgets/copilot";\nexport const value = dock;\n',
+      }),
+    ]);
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain("widgets compose features, never the reverse");
+  });
+
+  it("accepts a relative import inside the item", async () => {
+    const result = await runGate([
+      featureItem("inside", {
+        "src/features/inside/index.ts": 'import { value } from "./types";\nexport const other = value;\n',
+      }),
+    ]);
+    expect(result.code).toBe(0);
+  });
+
+  it("fails when a relative import escapes the project root", async () => {
+    const result = await runGate([
+      libItem("leak", { "src/lib/leak.ts": 'import x from "../../../outside";\nexport const y = x;\n' }),
+    ]);
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain("escapes the project root");
+  });
+
+  it("accepts a relative import provided by a registry dependency", async () => {
+    const result = await runGate([
+      libItem(
+        "consumer",
+        { "src/lib/consumer.ts": 'import { p } from "./provider";\nexport const c = p;\n' },
+        { registryDependencies: ["provider"] },
+      ),
+      libItem("provider", { "src/lib/provider.ts": "export const p = 1;\n" }),
+    ]);
+    expect(result.code).toBe(0);
   });
 });
 

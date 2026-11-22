@@ -11,8 +11,10 @@
  * contract comparison is skipped with a warning.
  */
 import fs from "node:fs/promises";
+import { createRequire } from "node:module";
 import path from "node:path";
 
+import semver from "semver";
 import ts from "typescript";
 
 const ALLOWED_STATES = new Set(["loading", "error", "empty", "success", "ready"]);
@@ -95,8 +97,19 @@ const HOST_PACKAGES = new Set(["next"]);
  * framework path is a reviewed change rather than an invisible one (R82-13).
  */
 const FRAMEWORK_MODULES = new Set(["@/lib/api-client", "@/lib/utils"]);
-const SEMVER = /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/;
-const SEMVER_RANGE = /^(?:[\^~]?\d|[<>=*])/;
+/**
+ * Layer each manifest type installs into. A feature stays a feature so host
+ * lint sees it as one; a lib may ship a component payload beside its logic
+ * (ADR-066). Any other landing path would install a file the host layer rules
+ * never see, so the gate rejects it here instead of at the first host build.
+ */
+const TYPE_TARGET_ROOTS = {
+  "registry:feature": ["features"],
+  "registry:widget": ["widgets"],
+  "registry:lib": ["lib", "components"],
+  "registry:component": ["components", "lib"],
+};
+const PORT_METHOD = /^[A-Za-z_$][\w$]*$/;
 /** Container directory holding every authored item (ADR-059). */
 const ITEMS_DIR = path.join("packages", "modules");
 /** Item-private directories that are not part of the installable payload. */
@@ -107,6 +120,20 @@ const ITEM_INFRASTRUCTURE = new Set(["test", "node_modules"]);
 const root = process.env.FEWBIE_CONTRACT_ROOT
   ? path.resolve(process.env.FEWBIE_CONTRACT_ROOT)
   : path.join(process.cwd(), ITEMS_DIR);
+/**
+ * Version of the CLI hosts actually run. A framework range can be well-formed
+ * and still exclude that CLI, in which case the item passes this gate and then
+ * fails to install (R87-01). The CLI is a dev dependency: the gate asks the
+ * same question an install asks, against the released version rather than this
+ * repository's working tree.
+ */
+const CLI_VERSION = (() => {
+  try {
+    return createRequire(import.meta.url)("@devbie/fewbie-cli/package.json").version;
+  } catch {
+    return undefined;
+  }
+})();
 const errors = [];
 const warnings = [];
 const checked = [];
@@ -205,7 +232,7 @@ async function collectUiAtoms(directory) {
     }
     if (!/\.(ts|tsx)$/.test(entry.name)) continue;
     const source = await fs.readFile(target, "utf8");
-    for (const match of source.matchAll(/from\s+"@\/components\/ui\/([\w-]+)"/g)) atoms.add(match[1]);
+    for (const match of source.matchAll(/from\s+["']@\/components\/ui\/([\w-]+)["']/g)) atoms.add(match[1]);
   }
   return atoms;
 }
@@ -221,12 +248,16 @@ async function declaredSources(directory, files) {
   return sources;
 }
 
-/** Import specifiers used by the declared payload. */
+/**
+ * Import specifiers used by the declared payload, paired with the file that
+ * imports them so relative targets can be resolved. Both quote styles count:
+ * an item could otherwise skip the whole check by switching quotes (R87-03).
+ */
 function importSpecifiers(sources) {
-  const specifiers = new Set();
-  for (const { source } of sources) {
-    for (const match of source.matchAll(/\bfrom\s+"([^"]+)"/g)) specifiers.add(match[1]);
-    for (const match of source.matchAll(/\bimport\s+"([^"]+)"/g)) specifiers.add(match[1]);
+  const specifiers = [];
+  for (const { file, source } of sources) {
+    for (const match of source.matchAll(/\bfrom\s+["']([^"']+)["']/g)) specifiers.push({ file, specifier: match[1] });
+    for (const match of source.matchAll(/\bimport\s+["']([^"']+)["']/g)) specifiers.push({ file, specifier: match[1] });
   }
   return specifiers;
 }
@@ -255,13 +286,26 @@ function aliasIsProvided(target, files) {
   );
 }
 
-/** Project-relative targets of the item's own `@/` imports (framework ones excluded). */
-function importedAliasTargets(sources) {
+/**
+ * Project-relative target of an alias or relative specifier. Both forms must be
+ * resolved, because a relative path names the same layer without naming it
+ * (R87-03); package specifiers have no project target.
+ */
+function resolveTarget(file, specifier) {
+  if (specifier.startsWith("@/")) return `src/${specifier.slice(2)}`;
+  if (!specifier.startsWith(".")) return undefined;
+  return path.posix.normalize(path.posix.join(path.posix.dirname(file), specifier));
+}
+
+/** Project-relative targets of the item's own imports (framework ones excluded). */
+function importedTargets(sources) {
   const targets = new Set();
-  for (const specifier of importSpecifiers(sources)) {
-    if (!specifier.startsWith("@/") || FRAMEWORK_MODULES.has(specifier)) continue;
-    if (specifier.startsWith("@/components/ui/")) continue;
-    targets.add(`src/${specifier.slice(2)}`);
+  for (const { file, specifier } of importSpecifiers(sources)) {
+    if (specifier.startsWith("@/") && (FRAMEWORK_MODULES.has(specifier) || specifier.startsWith("@/components/ui/"))) {
+      continue;
+    }
+    const target = resolveTarget(file, specifier);
+    if (target !== undefined) targets.add(target);
   }
   return targets;
 }
@@ -279,22 +323,33 @@ function checkImports(name, manifest, declared, sources) {
     for (const file of manifests.get(dependency)?.files ?? []) dependencyFiles.add(file);
   }
 
-  for (const specifier of importSpecifiers(sources)) {
-    if (specifier.startsWith(".") || specifier.startsWith("node:")) continue;
-    if (specifier.startsWith("@/components/ui/")) {
-      const atom = specifier.slice("@/components/ui/".length);
-      if (!ALLOWED_UI.has(atom)) fail(name, `imports ui primitive '${atom}', which is not on the framework allowlist`);
-      continue;
-    }
-    if (specifier.startsWith("@/widgets/") && manifest.type === "registry:feature") {
-      fail(name, `feature items must not import '${specifier}'; widgets compose features, never the reverse (ADR-066)`);
-      continue;
-    }
-    if (specifier.startsWith("@/")) {
-      if (FRAMEWORK_MODULES.has(specifier)) continue;
-      const target = `src/${specifier.slice(2)}`;
+  for (const { file, specifier } of importSpecifiers(sources)) {
+    if (specifier.startsWith("node:")) continue;
+    const target = resolveTarget(file, specifier);
+    if (target !== undefined) {
+      if (target === ".." || target.startsWith("../")) {
+        fail(name, `'${file}' imports '${specifier}', which escapes the project root`);
+        continue;
+      }
+      if (target.startsWith("src/widgets/") && manifest.type === "registry:feature") {
+        fail(
+          name,
+          `feature items must not import '${specifier}' (${file}); widgets compose features, never the reverse (ADR-066)`,
+        );
+        continue;
+      }
+      if (target.startsWith("src/components/ui/")) {
+        const atom = target.slice("src/components/ui/".length);
+        if (!ALLOWED_UI.has(atom))
+          fail(name, `imports ui primitive '${atom}', which is not on the framework allowlist`);
+        continue;
+      }
+      if (FRAMEWORK_MODULES.has(`@/${target.slice(4)}`)) continue;
       if (aliasIsProvided(target, declared) || aliasIsProvided(target, dependencyFiles)) continue;
-      fail(name, `imports '${specifier}' but no installed file or registryDependency provides it`);
+      fail(
+        name,
+        `imports '${specifier}' from '${file}' but no installed file or registryDependency provides '${target}'`,
+      );
       continue;
     }
     const pkg = packageName(specifier);
@@ -357,9 +412,24 @@ async function checkItem(name) {
     const normalized = normalizeFile(name, file);
     if (normalized === undefined) continue;
     declared.push(normalized);
-    await fs
-      .access(path.join(directory, normalized))
-      .catch(() => fail(name, `files entry '${normalized}' does not exist in the item directory`));
+    const stat = await fs.lstat(path.join(directory, normalized)).catch(() => undefined);
+    if (stat === undefined) fail(name, `files entry '${normalized}' does not exist in the item directory`);
+    else if (stat.isSymbolicLink()) fail(name, `files entry '${normalized}' must be a real file, not a symlink`);
+  }
+  for (const duplicate of duplicates(declared)) fail(name, `files declares '${duplicate}' more than once`);
+  const targetRoots = TYPE_TARGET_ROOTS[manifest.type];
+  if (targetRoots !== undefined) {
+    for (const file of declared) {
+      const segments = file.split("/");
+      if (segments[0] !== "src" || !targetRoots.includes(segments[1]) || segments.length < 3) {
+        fail(
+          name,
+          `files entry '${file}' must land under ${targetRoots
+            .map((root) => `src/${root}/`)
+            .join(" or ")} for type '${manifest.type}' (ADR-066)`,
+        );
+      }
+    }
   }
   comparePayload(name, declared, await payloadFiles(directory));
 
@@ -403,8 +473,22 @@ async function checkItem(name) {
     return;
   }
 
-  if (!SEMVER.test(contract.version)) fail(name, `contract.version '${contract.version}' is not semver`);
-  if (!SEMVER_RANGE.test(contract.framework)) fail(name, `contract.framework '${contract.framework}' is not a range`);
+  // Same rules the install parser applies (R87-01): a manifest this gate
+  // accepts must parse in the CLI, so a version or range is judged by semver
+  // instead of a prefix regex, and an empty list is not "nothing to check".
+  if (typeof contract !== "object" || Array.isArray(contract)) {
+    fail(name, "contract must be an object");
+    skipped.push(name);
+    return;
+  }
+  if (semver.valid(contract.version) === null) {
+    fail(name, `contract.version '${contract.version}' is not semver`);
+  }
+  if (typeof contract.framework !== "string" || semver.validRange(contract.framework) === null) {
+    fail(name, `contract.framework '${contract.framework}' is not a semver range`);
+  } else if (CLI_VERSION !== undefined && !semver.satisfies(CLI_VERSION, contract.framework)) {
+    fail(name, `contract.framework '${contract.framework}' excludes the shipping CLI (${CLI_VERSION})`);
+  }
   const entry = normalizeFile(name, contract.entry);
   if (entry === undefined || !declared.includes(entry))
     fail(name, `contract.entry '${contract.entry}' is not an installed file`);
@@ -412,20 +496,41 @@ async function checkItem(name) {
   for (const field of ["labels", "ports", "ui", "states"]) {
     if (!Array.isArray(contract[field])) fail(name, `contract.${field} must be an array`);
   }
+  for (const field of ["labels", "states"]) {
+    if (Array.isArray(contract[field]) && contract[field].length === 0) {
+      fail(name, `contract.${field} must not be empty`);
+    }
+  }
+  for (const field of ["labels", "ports", "ui", "states"]) {
+    const list = Array.isArray(contract[field]) ? contract[field] : [];
+    for (const value of list) {
+      if (typeof value !== "string" || value.length === 0) {
+        fail(name, `contract.${field} entries must be non-empty strings`);
+      }
+    }
+    for (const repeated of duplicates(list)) fail(name, `contract.${field} repeats '${repeated}'`);
+  }
 
+  for (const port of Array.isArray(contract.ports) ? contract.ports : []) {
+    if (typeof port === "string" && !PORT_METHOD.test(port)) {
+      fail(name, `contract.ports '${port}' is not a method name`);
+    }
+  }
   for (const state of Array.isArray(contract.states) ? contract.states : []) {
     if (!ALLOWED_STATES.has(state)) fail(name, `contract.states '${state}' is not allowed`);
   }
   for (const atom of Array.isArray(contract.ui) ? contract.ui : []) {
     if (!ALLOWED_UI.has(atom)) fail(name, `contract.ui '${atom}' is not on the framework allowlist`);
   }
-  // A state is a behaviour claim, not a vocabulary choice: the payload must
-  // actually implement it (R82-14).
+  // A state is a behaviour claim, not a vocabulary choice: the payload should
+  // actually implement it (R82-14). Evidence is a token scan, so a miss is a
+  // warning — an item may render a state through a helper this scan cannot see
+  // (R87-08).
   const sourceText = sources.map((source) => source.source).join("\n");
   for (const state of Array.isArray(contract.states) ? contract.states : []) {
     const evidence = STATE_EVIDENCE[state];
     if (evidence !== undefined && !evidence.test(sourceText)) {
-      fail(name, `contract.states declares '${state}' but no installed file implements it`);
+      warn(name, `contract.states declares '${state}' but no installed file shows its token`);
     }
   }
 
@@ -491,7 +596,7 @@ function checkDependencyCycles() {
  */
 function checkUnusedDependencies() {
   for (const [name, { sources }] of itemSources) {
-    const targets = importedAliasTargets(sources);
+    const targets = importedTargets(sources);
     for (const dependency of manifests.get(name)?.registryDependencies ?? []) {
       const files = manifests.get(dependency)?.files ?? [];
       const used = [...targets].some((target) => aliasIsProvided(target, files));
@@ -530,6 +635,13 @@ for (const name of itemNames) await checkItem(name);
 
 checkDependencyCycles();
 checkUnusedDependencies();
+
+if (CLI_VERSION === undefined) {
+  warn(
+    "registry",
+    "contract.framework ranges were not checked against the shipping CLI: @devbie/fewbie-cli is not installed",
+  );
+}
 
 if (warnings.length > 0) {
   console.warn(`Contract check warnings:\n  ${warnings.join("\n  ")}`);
