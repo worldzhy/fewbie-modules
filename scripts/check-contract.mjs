@@ -102,13 +102,19 @@ const ITEMS_DIR = path.join("packages", "modules");
 /** Item-private directories that are not part of the installable payload. */
 const ITEM_INFRASTRUCTURE = new Set(["test", "node_modules"]);
 
-const root = path.join(process.cwd(), ITEMS_DIR);
+// `FEWBIE_CONTRACT_ROOT` lets the fixture suite point the same gate at a
+// throwaway registry; production runs keep the repository default.
+const root = process.env.FEWBIE_CONTRACT_ROOT
+  ? path.resolve(process.env.FEWBIE_CONTRACT_ROOT)
+  : path.join(process.cwd(), ITEMS_DIR);
 const errors = [];
 const warnings = [];
 const checked = [];
 const skipped = [];
 /** Parsed manifest of every item, keyed by directory name (built before checks). */
 const manifests = new Map();
+/** Declared payload sources of every item, keyed by directory name. */
+const itemSources = new Map();
 
 function fail(item, message) {
   errors.push(`${item}: ${message}`);
@@ -249,6 +255,17 @@ function aliasIsProvided(target, files) {
   );
 }
 
+/** Project-relative targets of the item's own `@/` imports (framework ones excluded). */
+function importedAliasTargets(sources) {
+  const targets = new Set();
+  for (const specifier of importSpecifiers(sources)) {
+    if (!specifier.startsWith("@/") || FRAMEWORK_MODULES.has(specifier)) continue;
+    if (specifier.startsWith("@/components/ui/")) continue;
+    targets.add(`src/${specifier.slice(2)}`);
+  }
+  return targets;
+}
+
 /**
  * Every import must resolve to something the host will actually have: a
  * framework package, a declared npm dependency, a shadcn primitive, an
@@ -364,6 +381,7 @@ async function checkItem(name) {
   }
 
   const sources = await declaredSources(directory, declared);
+  itemSources.set(name, { declared, sources });
   checkImports(name, manifest, declared, sources);
 
   const sourceDir = ITEM_SOURCE_DIR[manifest.type];
@@ -430,6 +448,58 @@ async function checkItem(name) {
   checked.push(name);
 }
 
+/**
+ * The install order is derived from `registryDependencies`, so a cycle can
+ * never be installed: the host would either loop or land the items in an order
+ * where one import has no file yet (R86-06). Detect cycles over the declared
+ * graph and report the concrete loop.
+ */
+function checkDependencyCycles() {
+  const state = new Map();
+  const stack = [];
+  const reported = new Set();
+
+  function visit(name) {
+    const current = state.get(name);
+    if (current === "done") return;
+    if (current === "visiting") {
+      const at = stack.indexOf(name);
+      const cycle = [...stack.slice(at), name].join(" -> ");
+      if (!reported.has(cycle)) {
+        reported.add(cycle);
+        fail(name, `registryDependencies form a cycle: ${cycle}`);
+      }
+      return;
+    }
+    state.set(name, "visiting");
+    stack.push(name);
+    for (const dependency of manifests.get(name)?.registryDependencies ?? []) {
+      if (manifests.has(dependency)) visit(dependency);
+    }
+    stack.pop();
+    state.set(name, "done");
+  }
+
+  for (const name of manifests.keys()) visit(name);
+}
+
+/**
+ * A declared registry dependency exists so the host installs the item that
+ * provides an import. When nothing in the payload imports it, the declaration
+ * only makes installs heavier; warn instead of failing so a deliberate
+ * provider-only dependency stays possible (R86-06).
+ */
+function checkUnusedDependencies() {
+  for (const [name, { sources }] of itemSources) {
+    const targets = importedAliasTargets(sources);
+    for (const dependency of manifests.get(name)?.registryDependencies ?? []) {
+      const files = manifests.get(dependency)?.files ?? [];
+      const used = [...targets].some((target) => aliasIsProvided(target, files));
+      if (!used) warn(name, `registryDependencies lists '${dependency}' but no installed file imports it`);
+    }
+  }
+}
+
 const itemsRootExists = await fs
   .access(root)
   .then(() => true)
@@ -457,6 +527,9 @@ for (const name of itemNames) {
   manifests.set(name, JSON.parse(await fs.readFile(path.join(root, name, "fewbie.module.json"), "utf8")));
 }
 for (const name of itemNames) await checkItem(name);
+
+checkDependencyCycles();
+checkUnusedDependencies();
 
 if (warnings.length > 0) {
   console.warn(`Contract check warnings:\n  ${warnings.join("\n  ")}`);
