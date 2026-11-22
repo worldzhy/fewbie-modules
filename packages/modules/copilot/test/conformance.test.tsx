@@ -2,14 +2,14 @@ import { describe, expect, it, vi } from "vitest";
 
 import { makeLabels } from "@testing/labels";
 import { render, screen, userEvent, waitFor } from "@testing/render";
-import { CopilotDock } from "../src/components/copilot/copilot-dock";
+import { CopilotDock } from "../src/widgets/copilot/copilot-dock";
 import type {
   CopilotAgentEvent,
   CopilotLabels,
   CopilotPort,
   CopilotSendInput,
   CopilotSkillsCatalog,
-} from "../src/components/copilot/types";
+} from "../src/widgets/copilot/types";
 
 const CATALOG: CopilotSkillsCatalog = {
   v: 1,
