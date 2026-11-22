@@ -60,11 +60,12 @@ const ALLOWED_UI = new Set([
 /**
  * Directory that holds an item's installable sources, per manifest type. A
  * contract's `types.ts` lives under the same tree as the item it describes
- * (ADR-063), so a component-level item is checked against its own types file
- * instead of the page-level `src/features/<name>/types.ts`.
+ * (ADR-063, ADR-066), so a widget-level item is checked against its own types
+ * file instead of the page-level `src/features/<name>/types.ts`.
  */
 const ITEM_SOURCE_DIR = {
-  "registry:block": "features",
+  "registry:feature": "features",
+  "registry:widget": "widgets",
   "registry:component": "components",
   "registry:lib": "lib",
 };
@@ -268,6 +269,10 @@ function checkImports(name, manifest, declared, sources) {
       if (!ALLOWED_UI.has(atom)) fail(name, `imports ui primitive '${atom}', which is not on the framework allowlist`);
       continue;
     }
+    if (specifier.startsWith("@/widgets/") && manifest.type === "registry:feature") {
+      fail(name, `feature items must not import '${specifier}'; widgets compose features, never the reverse (ADR-066)`);
+      continue;
+    }
     if (specifier.startsWith("@/")) {
       if (FRAMEWORK_MODULES.has(specifier)) continue;
       const target = `src/${specifier.slice(2)}`;
@@ -368,10 +373,11 @@ async function checkItem(name) {
 
   const contract = manifest.contract;
   if (contract === undefined) {
-    // A block is a host-facing surface; without a contract its labels, ports
-    // and states are unverified. Copy-only lib/component items may skip.
-    if (manifest.type === "registry:block") {
-      fail(name, "registry:block items must declare a contract");
+    // A feature or widget is a host-facing surface; without a contract its
+    // labels, ports and states are unverified. Copy-only lib/component items
+    // may skip.
+    if (manifest.type === "registry:feature" || manifest.type === "registry:widget") {
+      fail(name, `${manifest.type} items must declare a contract`);
     } else {
       warn(name, "fewbie.module.json has no contract; contract checks skipped (R79-01)");
     }

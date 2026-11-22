@@ -2,7 +2,7 @@
   "name": "fewbie-modules",
   "private": true,
   "type": "module",
-  "description": "fewbie page-level module registry",
+  "description": "fewbie frontend module registry",
   "prettier": "@devbie/style-guide/prettier",
   "scripts": {
     "test": "vitest run",

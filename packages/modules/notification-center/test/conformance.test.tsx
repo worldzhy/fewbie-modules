@@ -4,13 +4,13 @@ import { Bell } from "lucide-react";
 import { deferred } from "@testing/deferred";
 import { makeLabels } from "@testing/labels";
 import { render, screen, userEvent, waitFor } from "@testing/render";
-import { NotificationBell } from "../src/components/notification-center/notification-bell";
-import { NotificationCenterProvider } from "../src/components/notification-center/notification-center";
+import { NotificationBell } from "../src/widgets/notification-center/notification-bell";
+import { NotificationCenterProvider } from "../src/widgets/notification-center/notification-center";
 import type {
   NotificationCenterLabels,
   NotificationCenterPort,
   NotificationRecord,
-} from "../src/components/notification-center/types";
+} from "../src/widgets/notification-center/types";
 
 const RECORD: NotificationRecord = {
   id: "n1",

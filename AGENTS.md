@@ -2,11 +2,12 @@
 
 ## Project
 
-fewbie module registry: the single authored store for fewbie items, at both
-page level (`src/features/**`) and lib/component level (`src/lib/**`,
-`src/components/**`). Items live under `packages/modules/` (ADR-059 in
-`devbie`); each item directory carries `fewbie.module.json` and the source files it
-ships, laid out to mirror the host target path.
+fewbie module registry: the single authored store for fewbie items, at page
+level (`src/features/**`), widget level (`src/widgets/**`) and shared
+lib/component level (`src/lib/**`, `src/components/**`). Items live under
+`packages/modules/` (ADR-059 in `devbie`); each item directory carries
+`fewbie.module.json` and the source files it ships, laid out to mirror the host
+target path.
 
 `@devbie/fewbie-cli` ships a generated snapshot of this repository for hosts
 that declare no registry (ADR-058 in `devbie`). Author every item here; the
@@ -25,6 +26,10 @@ A directory belongs here only when all of these hold:
 - Item files mirror their target path
   (`packages/modules/login-page/src/features/login-page/*` lands at
   `src/features/login-page/*`), so the CLI copies them verbatim.
+- Layers are fixed by the manifest type: `registry:feature` →
+  `src/features`, `registry:widget` → `src/widgets`, `registry:component` →
+  `src/components`, `registry:lib` → `src/lib`. A widget may import installed
+  features and widgets; a feature never imports a widget (ADR-066).
 
 ## Registry layout
 

@@ -40,8 +40,8 @@ snapshot is regenerated, never hand-edited (ADR-058 in `devbie`).
 | `frontend-monitor-sdk`    | `src/components/frontend-monitor.tsx`                                  | Browser-side monitoring component for the root layout                                                         |
 | `login-form`              | `src/features/login-form/**`                                           | Password login card built on the `auth` util                                                                  |
 | `password-checklist`      | `src/features/password-checklist/**`                                   | Live password rule checklist with a reusable predicate                                                        |
-| `notification-center`     | `src/components/notification-center/**`                                | Header bell and unread ticker plus detail sheet/panel; data, copy and categories are host ports               |
-| `copilot`                 | `src/components/copilot/**`                                            | Resizable chat dock with tool cards, confirmations and result blocks; transport and page scope are host ports |
+| `notification-center`     | `src/widgets/notification-center/**`                                   | Header bell and unread ticker plus detail sheet/panel; data, copy and categories are host ports               |
+| `copilot`                 | `src/widgets/copilot/**`                                               | Resizable chat dock with tool cards, confirmations and result blocks; transport and page scope are host ports |
 | `query-client`            | `src/lib/query-client.ts`, `src/components/query-provider.tsx`         | TanStack Query client with App Router wiring                                                                  |
 | `settings-required-state` | `src/features/settings-required-state/**`                              | Empty state for missing required configuration                                                                |
 | `sse-stream`              | `src/lib/sse-stream.ts`                                                | POST-based Server-Sent Events transport                                                                       |
@@ -73,11 +73,15 @@ payload (excluding `test/`) matches `files` exactly.
 
 ## Contracts
 
-- Page-level modules (`registry:block` under `src/features/**`) carry a
+- Feature items (`registry:feature` under `src/features/**`) carry a
   `contract` in `fewbie.module.json`: `version`, `framework`, `entry`, `labels`,
   `ports`, `ui`, `states`. `types.ts` is the type truth, the contract is its
   executable projection, and `check-contract.mjs` asserts they agree.
-- Component-level items (`registry:component` under `src/components/**`) may
+- Widget items (`registry:widget` under `src/widgets/**`) are cross-page shell
+  compositions (header bell, chat dock). They carry the same contract as
+  features and may import installed feature and widget items, but no feature
+  may import a widget (ADR-066).
+- Shared component items (`registry:component` under `src/components/**`) may
   declare the same `contract`; their `types.ts` lives next to the component
   (`src/components/<name>/types.ts`). A component without a contract still
   passes the structural checks and only skips the contract comparison
@@ -92,7 +96,7 @@ payload (excluding `test/`) matches `files` exactly.
   `onSignedIn`), so a host keeps its own i18n and API client.
 - Item manifests use the authored fewbie form: `files` are project-relative
   path strings, `type` is one of `registry:lib`, `registry:component`,
-  `registry:block`.
+  `registry:widget`, `registry:feature`.
 
 ## Gates
 
