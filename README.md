@@ -69,7 +69,9 @@ registry infrastructure and never reaches a host:
 `check-contract.mjs` enforces the structural invariants on every item:
 directory name equals `fewbie.module.json.name`, every `files` entry is a safe
 repository-relative path that exists under the item directory, and the on-disk
-payload (excluding `test/`) matches `files` exactly.
+payload (excluding `test/`) matches `files` exactly. It also fails on a
+`registryDependencies` cycle (the install order can never be built) and warns
+when a declared registry dependency is not imported by any installed file.
 
 ## Contracts
 
@@ -105,3 +107,15 @@ npm test               # item conformance tests
 npm run check:contract # structural invariants + contract/types.ts parity
 npm run format:check   # prettier
 ```
+
+## Test coverage
+
+Every item that renders host-facing UI has a conformance suite under
+`packages/modules/<item>/test/`. Copy-only items whose behaviour belongs to a
+package they delegate to are exempt, and the reason stays here:
+
+| Item                   | Reason                                                                                                                   |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `auth`                 | Thin wrapper over `@/lib/api-client`; the request/session gate is framework-owned and tested in the starter.             |
+| `query-client`         | Singleton plus provider with no branching of its own; App Router wiring is exercised by the host build.                  |
+| `frontend-monitor-sdk` | Scaffolds a client component around `@devbie/frontend-monitor-sdk`; the SDK owns the monitoring behaviour and its tests. |
