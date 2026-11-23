@@ -13,7 +13,6 @@
     "types": ["node", "vitest/globals", "@testing-library/jest-dom"],
     "paths": {
       "@/fewbie/modules/account-access/lib/auth": ["./packages/modules/account-access/lib/auth.ts"],
-      "@/fewbie/modules/query-client/lib/query-client": ["./packages/modules/query-client/lib/query-client.ts"],
       "@/fewbie/modules/sse-stream/lib/sse-stream": ["./packages/modules/sse-stream/lib/sse-stream.ts"],
       // TypeScript allows one `*` per path entry, so cross-item module imports
       // are listed explicitly (R84-06).
