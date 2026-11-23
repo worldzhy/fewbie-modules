@@ -14,21 +14,26 @@ export default defineConfig({
     alias: {
       // Item-provided lib modules resolve to the items themselves; everything
       // else under `@/` is the framework surface the harness stubs.
-      "@/lib/auth": fileURLToPath(new URL("./packages/modules/account-access/src/lib/auth.ts", import.meta.url)),
-      "@/lib/query-client": fileURLToPath(
-        new URL("./packages/modules/query-client/src/lib/query-client.ts", import.meta.url),
+      "@/items/account-access/lib/auth": fileURLToPath(
+        new URL("./packages/modules/account-access/src/items/account-access/lib/auth.ts", import.meta.url),
       ),
-      "@/lib/sse-stream": fileURLToPath(
-        new URL("./packages/modules/sse-stream/src/lib/sse-stream.ts", import.meta.url),
+      "@/items/query-client/lib/query-client": fileURLToPath(
+        new URL("./packages/modules/query-client/src/items/query-client/lib/query-client.ts", import.meta.url),
+      ),
+      "@/items/sse-stream/lib/sse-stream": fileURLToPath(
+        new URL("./packages/modules/sse-stream/src/items/sse-stream/lib/sse-stream.ts", import.meta.url),
       ),
       // Cross-item imports go through the item's public entry (forgot-password
       // reuses password-checklist's predicate).
-      "@/components/password-checklist": fileURLToPath(
-        new URL("./packages/modules/password-checklist/src/components/password-checklist/index.ts", import.meta.url),
-      ),
-      "@/components/notification-presentation": fileURLToPath(
+      "@/items/password-checklist/components/password-checklist": fileURLToPath(
         new URL(
-          "./packages/modules/notification-center/src/components/notification-presentation/index.ts",
+          "./packages/modules/password-checklist/src/items/password-checklist/components/password-checklist/index.ts",
+          import.meta.url,
+        ),
+      ),
+      "@/items/notification-center/components/notification-presentation": fileURLToPath(
+        new URL(
+          "./packages/modules/notification-center/src/items/notification-center/components/notification-presentation/index.ts",
           import.meta.url,
         ),
       ),

@@ -12,14 +12,18 @@
     "resolveJsonModule": true,
     "types": ["node", "vitest/globals", "@testing-library/jest-dom"],
     "paths": {
-      "@/lib/auth": ["./packages/modules/account-access/src/lib/auth.ts"],
-      "@/lib/query-client": ["./packages/modules/query-client/src/lib/query-client.ts"],
-      "@/lib/sse-stream": ["./packages/modules/sse-stream/src/lib/sse-stream.ts"],
+      "@/items/account-access/lib/auth": ["./packages/modules/account-access/src/items/account-access/lib/auth.ts"],
+      "@/items/query-client/lib/query-client": [
+        "./packages/modules/query-client/src/items/query-client/lib/query-client.ts"
+      ],
+      "@/items/sse-stream/lib/sse-stream": ["./packages/modules/sse-stream/src/items/sse-stream/lib/sse-stream.ts"],
       // TypeScript allows one `*` per path entry, so cross-item module imports
       // are listed explicitly (R84-06).
-      "@/components/password-checklist": ["./packages/modules/password-checklist/src/components/password-checklist"],
-      "@/components/notification-presentation": [
-        "./packages/modules/notification-center/src/components/notification-presentation"
+      "@/items/password-checklist/components/password-checklist": [
+        "./packages/modules/password-checklist/src/items/password-checklist/components/password-checklist"
+      ],
+      "@/items/notification-center/components/notification-presentation": [
+        "./packages/modules/notification-center/src/items/notification-center/components/notification-presentation"
       ],
       "@testing/*": ["./harness/testing/*"],
       "@/*": ["./harness/framework/*"]

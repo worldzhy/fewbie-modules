@@ -3,12 +3,12 @@ import { describe, expect, it, vi } from "vitest";
 import { expectNoViolations } from "@testing/a11y";
 import { makeLabels } from "@testing/labels";
 import { render, screen, userEvent, waitFor } from "@testing/render";
-import { PreferencesSettings } from "../src/features/preferences-settings/preferences-settings";
+import { PreferencesSettings } from "../src/items/account-settings/features/preferences-settings/preferences-settings";
 import type {
   PreferencesSettingsLabels,
   PreferencesSettingsPort,
   PreferencesSettingsValues,
-} from "../src/features/preferences-settings/types";
+} from "../src/items/account-settings/features/preferences-settings/types";
 
 const VALUES: PreferencesSettingsValues = { language: "en", theme: "LIGHT", timezone: "UTC" };
 const LANGUAGES = [

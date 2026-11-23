@@ -3,12 +3,12 @@ import { Bell } from "lucide-react";
 
 import { makeLabels } from "@testing/labels";
 import { render, screen, userEvent, waitFor } from "@testing/render";
-import { NotificationCenterShell } from "../src/widgets/notification-center-shell/notification-center-shell";
+import { NotificationCenterShell } from "../src/items/notification-center/widgets/notification-center-shell/notification-center-shell";
 import type {
   NotificationCenterShellLabels,
   NotificationCenterShellPort,
-} from "../src/widgets/notification-center-shell/types";
-import type { NotificationPresentationLabels } from "../src/components/notification-presentation/types";
+} from "../src/items/notification-center/widgets/notification-center-shell/types";
+import type { NotificationPresentationLabels } from "../src/items/notification-center/components/notification-presentation/types";
 
 function setup(overrides: Partial<NotificationCenterShellPort> = {}, notificationsPath?: string) {
   const port: NotificationCenterShellPort = {

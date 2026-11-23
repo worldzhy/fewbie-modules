@@ -4,8 +4,8 @@ import { expectNoViolations } from "@testing/a11y";
 import { deferred } from "@testing/deferred";
 import { makeLabels } from "@testing/labels";
 import { render, screen, userEvent, waitFor } from "@testing/render";
-import { LoginPage } from "../src/features/login-page/login-page";
-import type { LoginLabels, LoginPort } from "../src/features/login-page/types";
+import { LoginPage } from "../src/items/account-access/features/login-page/login-page";
+import type { LoginLabels, LoginPort } from "../src/items/account-access/features/login-page/types";
 
 function setup(overrides: Partial<LoginPort> = {}, props: { onSignedIn?: () => void } = {}) {
   const port: LoginPort = {

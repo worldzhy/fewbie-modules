@@ -65,10 +65,10 @@ const ALLOWED_UI = new Set([
  */
 const LAYERS = ["features", "widgets", "components", "lib"];
 
-/** Layer of a project-relative file, or undefined outside the four roots. */
+/** Layer of a project-relative file, or undefined outside the item-first tree. */
 function layerOf(file) {
   const segments = file.split("/");
-  return segments[0] === "src" && LAYERS.includes(segments[1]) ? segments[1] : undefined;
+  return segments[0] === "src" && segments[1] === "items" && LAYERS.includes(segments[3]) ? segments[3] : undefined;
 }
 /**
  * Package names the framework runtime or the shadcn-initialized template always
@@ -97,12 +97,13 @@ const HOST_PACKAGES = new Set(["next"]);
  */
 const FRAMEWORK_MODULES = new Set(["@/lib/api-client", "@/lib/utils"]);
 /**
- * Layer each manifest type installs into. A feature stays a feature so host
+ * Layers each manifest type may install into. A feature stays a feature so host
  * lint sees it as one; a lib may ship a component payload beside its logic
- * (ADR-066). Any other landing path would install a file the host layer rules
- * never see, so the gate rejects it here instead of at the first host build.
+ * (ADR-066). Every payload file lands under the item's own item-first tree
+ * (ADR-070 D1); any other landing path would install a file the host layer
+ * rules never see, so the gate rejects it here instead of at the first host build.
  */
-const TYPE_TARGET_ROOTS = {
+const TYPE_LAYERS = {
   "registry:block": ["features", "widgets", "components", "lib"],
   "registry:lib": ["lib", "components"],
   "registry:component": ["components", "lib"],
@@ -230,7 +231,7 @@ async function collectUiAtoms(directory) {
     }
     if (!/\.(ts|tsx)$/.test(entry.name)) continue;
     const source = await fs.readFile(target, "utf8");
-    for (const match of source.matchAll(/from\s+["']@\/components\/ui\/([\w-]+)["']/g)) atoms.add(match[1]);
+    for (const match of source.matchAll(/from\s+["']@\/fewbie\/ui\/([\w-]+)["']/g)) atoms.add(match[1]);
   }
   return atoms;
 }
@@ -299,7 +300,7 @@ function resolveTarget(file, specifier) {
 function importedTargets(sources) {
   const targets = new Set();
   for (const { file, specifier } of importSpecifiers(sources)) {
-    if (specifier.startsWith("@/") && (FRAMEWORK_MODULES.has(specifier) || specifier.startsWith("@/components/ui/"))) {
+    if (specifier.startsWith("@/") && (FRAMEWORK_MODULES.has(specifier) || specifier.startsWith("@/fewbie/ui/"))) {
       continue;
     }
     const target = resolveTarget(file, specifier);
@@ -347,8 +348,8 @@ function checkImports(name, manifest, declared, sources) {
         fail(name, `lib files must not import '${specifier}' (${file}); lib is the bottom layer (ADR-069 D4)`);
         continue;
       }
-      if (target.startsWith("src/components/ui/")) {
-        const atom = target.slice("src/components/ui/".length);
+      if (target.startsWith("src/fewbie/ui/")) {
+        const atom = target.slice("src/fewbie/ui/".length);
         if (!ALLOWED_UI.has(atom))
           fail(name, `imports ui primitive '${atom}', which is not on the framework allowlist`);
         continue;
@@ -426,16 +427,20 @@ async function checkItem(name) {
     else if (stat.isSymbolicLink()) fail(name, `files entry '${normalized}' must be a real file, not a symlink`);
   }
   for (const duplicate of duplicates(declared)) fail(name, `files declares '${duplicate}' more than once`);
-  const targetRoots = TYPE_TARGET_ROOTS[manifest.type];
-  if (targetRoots !== undefined) {
+  const typeLayers = TYPE_LAYERS[manifest.type];
+  if (typeLayers !== undefined) {
     for (const file of declared) {
       const segments = file.split("/");
-      if (segments[0] !== "src" || !targetRoots.includes(segments[1]) || segments.length < 3) {
+      if (
+        segments[0] !== "src" ||
+        segments[1] !== "items" ||
+        segments[2] !== name ||
+        !typeLayers.includes(segments[3]) ||
+        segments.length < 5
+      ) {
         fail(
           name,
-          `files entry '${file}' must land under ${targetRoots
-            .map((root) => `src/${root}/`)
-            .join(" or ")} for type '${manifest.type}' (ADR-066)`,
+          `files entry '${file}' must land under src/items/${name}/<${typeLayers.join("|")}>/ for type '${manifest.type}' (ADR-070)`,
         );
       }
     }
@@ -463,8 +468,8 @@ async function checkItem(name) {
   itemSources.set(name, { declared, sources });
   checkImports(name, manifest, declared, sources);
 
-  if (TYPE_TARGET_ROOTS[manifest.type] === undefined) {
-    fail(name, `type '${manifest.type}' is not one of ${Object.keys(TYPE_TARGET_ROOTS).join(", ")}`);
+  if (TYPE_LAYERS[manifest.type] === undefined) {
+    fail(name, `type '${manifest.type}' is not one of ${Object.keys(TYPE_LAYERS).join(", ")}`);
   }
 
   const contract = manifest.contract;
@@ -571,8 +576,8 @@ async function checkItem(name) {
         fail(name, `contract.layers.${layerName}.types '${layer.types}' is not an installed file`);
         continue;
       }
-      if (!types.startsWith(`src/${layerName}/`)) {
-        fail(name, `contract.layers.${layerName}.types '${types}' must land under src/${layerName}/`);
+      if (!types.startsWith(`src/items/${name}/${layerName}/`)) {
+        fail(name, `contract.layers.${layerName}.types '${types}' must land under src/items/${name}/${layerName}/`);
         continue;
       }
       if (seenTypes.has(types)) fail(name, `contract.layers declares '${types}' more than once`);
@@ -615,9 +620,8 @@ async function checkItem(name) {
       if (extra.length > 0) fail(name, `contract.${field} lists ${extra.join(", ")} that no layer declares`);
     }
   } else {
-    // v1 item: types.ts sits beside the entry file's layer directory.
-    const entryLayer = entry.split("/")[1];
-    const typesRelative = `src/${entryLayer}/${name}/types.ts`;
+    // v1 item: types.ts sits beside the entry file (ADR-070 item-first tree).
+    const typesRelative = `${path.posix.dirname(entry)}/types.ts`;
     const typesPath = path.join(directory, typesRelative);
     const typesSource = await fs.readFile(typesPath, "utf8").catch(() => undefined);
     if (typesSource === undefined) {
