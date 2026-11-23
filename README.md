@@ -86,6 +86,14 @@ when a declared registry dependency is not imported by any installed file.
   React); they never import a host's i18n, router, transport or toast library.
 - Copy, transport and side effects enter through props (`labels`, `port`,
   `onSignedIn`), so a host keeps its own i18n and API client.
+- A layer may declare `defaults` — locale-keyed copy for labels the host may
+  omit (`{ "en": { "email": "Email" }, "zh": { "email": "邮箱" } }`). Only
+  mechanism copy belongs there: aria labels, validation errors, buttons, error
+  codes and neutral hints. Product voice (page titles, descriptions, result
+  promises, reassurance) stays host-owned. `check-contract.mjs` validates the
+  shape only (keys belong to the layer's labels, values non-empty); locale
+  coverage is enforced by the host's `fewbie modules adapters --check`, because
+  the framework message files own the language set (ADR-074).
 - Module manifests use the authored fewbie form: `files` are project-relative
   path strings, `type` is one of `registry:lib`, `registry:component`,
   `registry:block`.

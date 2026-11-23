@@ -622,6 +622,38 @@ async function checkModule(name) {
           fail(name, `contract.layers.${layerName}.${field} repeats '${repeated}'`);
         }
       }
+      // Locale defaults are copy the host may omit (ADR-074). Shape only: keys
+      // must belong to this layer's labels and values must be non-empty; locale
+      // coverage belongs to the host, which owns the framework language set.
+      const defaults = layer.defaults;
+      if (defaults !== undefined) {
+        if (defaults === null || typeof defaults !== "object" || Array.isArray(defaults)) {
+          fail(name, `contract.layers.${layerName}.defaults must be an object keyed by locale`);
+        } else {
+          const layerLabels = new Set(Array.isArray(layer.labels) ? layer.labels : []);
+          for (const [locale, copy] of Object.entries(defaults)) {
+            if (locale.trim() === "") {
+              fail(name, `contract.layers.${layerName}.defaults has an empty locale key`);
+              continue;
+            }
+            if (copy === null || typeof copy !== "object" || Array.isArray(copy)) {
+              fail(name, `contract.layers.${layerName}.defaults.${locale} must be an object of label copy`);
+              continue;
+            }
+            for (const [key, text] of Object.entries(copy)) {
+              if (!layerLabels.has(key)) {
+                fail(
+                  name,
+                  `contract.layers.${layerName}.defaults.${locale} key '${key}' is not one of the layer's labels`,
+                );
+              }
+              if (typeof text !== "string" || text.trim() === "") {
+                fail(name, `contract.layers.${layerName}.defaults.${locale}.${key} must be a non-empty string`);
+              }
+            }
+          }
+        }
+      }
       const layerStorage = storagePath(name, types);
       const layerSource =
         layerStorage === undefined
