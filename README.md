@@ -37,8 +37,7 @@ snapshot is regenerated, never hand-edited (ADR-058 in `devbie`).
 | `frontend-monitor-sdk` | `src/fewbie/modules/frontend-monitor-sdk/**` | Browser-side monitoring component for the root layout                                                         |
 | `notification-center`  | `src/fewbie/modules/notification-center/**`  | Header bell and unread ticker plus detail sheet/panel; data, copy and categories are host ports               |
 | `password-checklist`   | `src/fewbie/modules/password-checklist/**`   | Live password rule checklist with a reusable predicate                                                        |
-| `query-client`         | `src/fewbie/modules/query-client/**`         | TanStack Query client with App Router wiring                                                                  |
-| `sse-stream`           | `src/fewbie/modules/sse-stream/**`           | POST-based Server-Sent Events transport                                                                       |
+| `sse-stream`           | `src/fewbie/modules/sse-stream/**`           | SSE frame decoder; the request and auth stay in the host                                                      |
 | `theme`                | `src/fewbie/modules/theme/**`                | next-themes provider and light/dark toggle                                                                    |
 
 A module directory mirrors the target layout:
@@ -109,5 +108,4 @@ package they delegate to are exempt, and the reason stays here:
 | Module                  | Reason                                                                                                                   |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | `account-access` (auth) | Thin wrapper over `@/lib/api-client`; the request/session gate is framework-owned and tested in the starter.             |
-| `query-client`          | Singleton plus provider with no branching of its own; App Router wiring is exercised by the host build.                  |
 | `frontend-monitor-sdk`  | Scaffolds a client component around `@devbie/frontend-monitor-sdk`; the SDK owns the monitoring behaviour and its tests. |

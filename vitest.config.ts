@@ -17,9 +17,6 @@ export default defineConfig({
       "@/fewbie/modules/account-access/lib/auth": fileURLToPath(
         new URL("./packages/modules/account-access/lib/auth.ts", import.meta.url),
       ),
-      "@/fewbie/modules/query-client/lib/query-client": fileURLToPath(
-        new URL("./packages/modules/query-client/lib/query-client.ts", import.meta.url),
-      ),
       "@/fewbie/modules/sse-stream/lib/sse-stream": fileURLToPath(
         new URL("./packages/modules/sse-stream/lib/sse-stream.ts", import.meta.url),
       ),
