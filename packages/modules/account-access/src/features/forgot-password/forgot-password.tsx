@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { checkPasswordPolicy, isStrongPassword } from "@/features/password-checklist";
+import { checkPasswordPolicy, isStrongPassword } from "@/components/password-checklist";
 import type { ForgotPasswordLabels, ForgotPasswordProps } from "./types";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -156,8 +156,8 @@ export function ForgotPasswordPage({
   }, [isCountingDown]);
 
   function validateEmail(value: string): string | undefined {
-    if (!value.trim()) return labels.emailRequired;
-    if (!EMAIL_PATTERN.test(value)) return labels.invalidEmail;
+    if (!value.trim()) return labels.forgotEmailRequired;
+    if (!EMAIL_PATTERN.test(value)) return labels.forgotInvalidEmail;
     return undefined;
   }
 
@@ -187,9 +187,9 @@ export function ForgotPasswordPage({
 
     const nextErrors = {
       email: validateEmail(email),
-      code: !code ? labels.codeRequired : code.length !== CODE_LENGTH ? labels.codeDigits : undefined,
+      code: !code ? labels.forgotCodeRequired : code.length !== CODE_LENGTH ? labels.forgotCodeDigits : undefined,
       newPassword: !newPassword
-        ? labels.passwordRequired
+        ? labels.forgotPasswordRequired
         : isStrongPassword(newPassword)
           ? undefined
           : labels.passwordRule,
@@ -212,8 +212,8 @@ export function ForgotPasswordPage({
   return (
     <Card className="w-full shadow-sm">
       <CardHeader>
-        <CardTitle className="text-xl">{labels.title}</CardTitle>
-        <CardDescription>{labels.description}</CardDescription>
+        <CardTitle className="text-xl">{labels.forgotTitle}</CardTitle>
+        <CardDescription>{labels.forgotDescription}</CardDescription>
       </CardHeader>
       <CardContent>
         {notices}
@@ -236,7 +236,7 @@ export function ForgotPasswordPage({
                   type="button"
                   onClick={() => setEmail("")}
                   className="absolute top-1/2 right-2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  aria-label={labels.clearEmail}
+                  aria-label={labels.forgotClearEmail}
                 >
                   <ClearIcon />
                 </button>
@@ -262,7 +262,7 @@ export function ForgotPasswordPage({
                     type="button"
                     onClick={() => setCode("")}
                     className="text-muted-foreground hover:text-foreground"
-                    aria-label={labels.clearCode}
+                    aria-label={labels.forgotClearCode}
                   >
                     <ClearIcon />
                   </button>
@@ -275,9 +275,9 @@ export function ForgotPasswordPage({
                   onClick={() => void handleGetCode()}
                   disabled={secondsLeft > 0 || sendPending}
                   aria-busy={sendPending}
-                  aria-label={labels.getCode}
+                  aria-label={labels.forgotGetCode}
                 >
-                  {sendPending ? <Spinner /> : secondsLeft > 0 ? `${secondsLeft}s` : labels.getCode}
+                  {sendPending ? <Spinner /> : secondsLeft > 0 ? `${secondsLeft}s` : labels.forgotGetCode}
                 </Button>
               </div>
             </div>
@@ -301,7 +301,7 @@ export function ForgotPasswordPage({
                     type="button"
                     onClick={() => setNewPassword("")}
                     className="text-muted-foreground hover:text-foreground"
-                    aria-label={labels.clearPassword}
+                    aria-label={labels.forgotClearPassword}
                   >
                     <ClearIcon />
                   </button>
@@ -310,7 +310,7 @@ export function ForgotPasswordPage({
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
                   className="text-muted-foreground hover:text-foreground"
-                  aria-label={showPassword ? labels.hidePassword : labels.showPassword}
+                  aria-label={showPassword ? labels.forgotHidePassword : labels.forgotShowPassword}
                 >
                   {showPassword ? <EyeOffIcon /> : <EyeIcon />}
                 </button>
@@ -331,7 +331,7 @@ export function ForgotPasswordPage({
                 className="h-auto p-0 text-xs font-normal"
                 onClick={onBack}
               >
-                {labels.back}
+                {labels.forgotBack}
               </Button>
             </div>
           )}

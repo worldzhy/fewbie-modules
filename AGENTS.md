@@ -24,12 +24,19 @@ A directory belongs here only when all of these hold:
 - It is copy-assemblable: the host renders the exported component with props
   and adds no hand-written adapter beyond the ports the item documents.
 - Item files mirror their target path
-  (`packages/modules/login-page/src/features/login-page/*` lands at
+  (`packages/modules/account-access/src/features/login-page/*` lands at
   `src/features/login-page/*`), so the CLI copies them verbatim.
-- Layers are fixed by the manifest type: `registry:feature` →
-  `src/features`, `registry:widget` → `src/widgets`, `registry:component` →
-  `src/components`, `registry:lib` → `src/lib`. A widget may import installed
-  features and widgets; a feature never imports a widget (ADR-066).
+- Layers are derived from file paths, not declared by the item type
+  (ADR-069): `registry:block` may ship `src/features`, `src/widgets`,
+  `src/components` and `src/lib`; `registry:component` ships
+  `src/components` and `src/lib`; `registry:lib` ships `src/lib` and
+  `src/components`.
+- A block's `contract.layers[]` names each labelled layer with its `types.ts`
+  path, labels, ports and states; the top-level unions are checked against the
+  layers. Components and libs need no contract.
+- Dependency direction follows the path: a widget may compose features, a
+  feature never imports a widget, and `components`/`lib` never import
+  `features` or `widgets`.
 
 ## Registry layout
 

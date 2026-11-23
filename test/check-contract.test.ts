@@ -49,7 +49,7 @@ function featureItem(
     name,
     manifest: {
       name,
-      type: "registry:feature",
+      type: "registry:block",
       files: Object.keys(payload),
       contract: {
         version: "1.0.0",
@@ -151,34 +151,34 @@ describe("check-contract structural gate", () => {
 
   it("fails when the manifest type is unknown", async () => {
     const item = libItem("legacy", { "src/lib/legacy.ts": "export const x = 1;\n" });
-    item.manifest.type = "registry:block";
+    item.manifest.type = "registry:widget";
     const result = await runGate([item]);
     expect(result.code).toBe(1);
-    expect(result.stderr).toContain("type 'registry:block' is not one of");
+    expect(result.stderr).toContain("type 'registry:widget' is not one of");
   });
 });
 
 describe("check-contract type and boundary gate", () => {
-  it("fails when a feature declares no contract", async () => {
+  it("fails when a block declares no contract", async () => {
     const result = await runGate([
       {
         name: "feature",
-        manifest: { name: "feature", type: "registry:feature", files: ["src/features/feature/index.ts"] },
+        manifest: { name: "feature", type: "registry:block", files: ["src/features/feature/index.ts"] },
         files: { "src/features/feature/index.ts": "export const feature = 1;\n" },
       },
     ]);
     expect(result.code).toBe(1);
-    expect(result.stderr).toContain("registry:feature items must declare a contract");
+    expect(result.stderr).toContain("registry:block items must declare a contract");
   });
 
-  it("looks for a widget's types.ts under src/widgets, not src/features", async () => {
+  it("resolves types.ts beside the entry file's layer, not wherever it was filed", async () => {
     const result = await runGate([
       {
         name: "misfiled",
         manifest: {
           name: "misfiled",
-          type: "registry:widget",
-          files: ["src/features/misfiled/types.ts", "src/features/misfiled/index.ts"],
+          type: "registry:block",
+          files: ["src/widgets/misfiled/types.ts", "src/features/misfiled/index.ts"],
           contract: {
             version: "1.0.0",
             framework: "^1.0.0",
@@ -190,20 +190,20 @@ describe("check-contract type and boundary gate", () => {
           },
         },
         files: {
-          "src/features/misfiled/types.ts": "export interface MisfiledLabels {}\n",
+          "src/widgets/misfiled/types.ts": "export interface MisfiledLabels {}\n",
           "src/features/misfiled/index.ts": "export const misfiled = 1;\n",
         },
       },
     ]);
     expect(result.code).toBe(1);
-    expect(result.stderr).toContain("'src/widgets/misfiled/types.ts' does not exist");
+    expect(result.stderr).toContain("'src/features/misfiled/types.ts' does not exist");
   });
 
   it("fails when a feature imports a widget", async () => {
     const result = await runGate([
       {
         name: "reverse",
-        manifest: { name: "reverse", type: "registry:feature", files: ["src/features/reverse/index.ts"] },
+        manifest: { name: "reverse", type: "registry:block", files: ["src/features/reverse/index.ts"] },
         files: {
           "src/features/reverse/index.ts": 'import { dock } from "@/widgets/copilot";\nexport const reverse = dock;\n',
         },

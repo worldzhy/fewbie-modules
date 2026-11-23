@@ -14,7 +14,7 @@ export default defineConfig({
     alias: {
       // Item-provided lib modules resolve to the items themselves; everything
       // else under `@/` is the framework surface the harness stubs.
-      "@/lib/auth": fileURLToPath(new URL("./packages/modules/auth/src/lib/auth.ts", import.meta.url)),
+      "@/lib/auth": fileURLToPath(new URL("./packages/modules/account-access/src/lib/auth.ts", import.meta.url)),
       "@/lib/query-client": fileURLToPath(
         new URL("./packages/modules/query-client/src/lib/query-client.ts", import.meta.url),
       ),
@@ -23,12 +23,12 @@ export default defineConfig({
       ),
       // Cross-item imports go through the item's public entry (forgot-password
       // reuses password-checklist's predicate).
-      "@/features/password-checklist": fileURLToPath(
-        new URL("./packages/modules/password-checklist/src/features/password-checklist/index.ts", import.meta.url),
+      "@/components/password-checklist": fileURLToPath(
+        new URL("./packages/modules/password-checklist/src/components/password-checklist/index.ts", import.meta.url),
       ),
       "@/components/notification-presentation": fileURLToPath(
         new URL(
-          "./packages/modules/notification-presentation/src/components/notification-presentation/index.ts",
+          "./packages/modules/notification-center/src/components/notification-presentation/index.ts",
           import.meta.url,
         ),
       ),

@@ -60,17 +60,16 @@ const ALLOWED_UI = new Set([
   "tooltip",
 ]);
 /**
- * Directory that holds an item's installable sources, per manifest type. A
- * contract's `types.ts` lives under the same tree as the item it describes
- * (ADR-063, ADR-066), so a widget-level item is checked against its own types
- * file instead of the page-level `src/features/<name>/types.ts`.
+ * Layers a payload file may occupy (ADR-069 D1). The layer of a file, not the
+ * manifest type, decides which tree its contract's `types.ts` lives in.
  */
-const ITEM_SOURCE_DIR = {
-  "registry:feature": "features",
-  "registry:widget": "widgets",
-  "registry:component": "components",
-  "registry:lib": "lib",
-};
+const LAYERS = ["features", "widgets", "components", "lib"];
+
+/** Layer of a project-relative file, or undefined outside the four roots. */
+function layerOf(file) {
+  const segments = file.split("/");
+  return segments[0] === "src" && LAYERS.includes(segments[1]) ? segments[1] : undefined;
+}
 /**
  * Package names the framework runtime or the shadcn-initialized template always
  * provide. Any other bare import must be declared in `dependencies`, otherwise a
@@ -104,8 +103,7 @@ const FRAMEWORK_MODULES = new Set(["@/lib/api-client", "@/lib/utils"]);
  * never see, so the gate rejects it here instead of at the first host build.
  */
 const TYPE_TARGET_ROOTS = {
-  "registry:feature": ["features"],
-  "registry:widget": ["widgets"],
+  "registry:block": ["features", "widgets", "components", "lib"],
   "registry:lib": ["lib", "components"],
   "registry:component": ["components", "lib"],
 };
@@ -331,11 +329,22 @@ function checkImports(name, manifest, declared, sources) {
         fail(name, `'${file}' imports '${specifier}', which escapes the project root`);
         continue;
       }
-      if (target.startsWith("src/widgets/") && manifest.type === "registry:feature") {
+      if (layerOf(file) === "features" && layerOf(target) === "widgets") {
         fail(
           name,
-          `feature items must not import '${specifier}' (${file}); widgets compose features, never the reverse (ADR-066)`,
+          `feature files must not import '${specifier}' (${file}); widgets compose features, never the reverse (ADR-069 D4)`,
         );
+        continue;
+      }
+      if (layerOf(file) === "components" && ["features", "widgets"].includes(layerOf(target))) {
+        fail(
+          name,
+          `component files must not import '${specifier}' (${file}); shared presentation stays below features and widgets (ADR-069 D4)`,
+        );
+        continue;
+      }
+      if (layerOf(file) === "lib" && ["features", "widgets"].includes(layerOf(target))) {
+        fail(name, `lib files must not import '${specifier}' (${file}); lib is the bottom layer (ADR-069 D4)`);
         continue;
       }
       if (target.startsWith("src/components/ui/")) {
@@ -454,17 +463,15 @@ async function checkItem(name) {
   itemSources.set(name, { declared, sources });
   checkImports(name, manifest, declared, sources);
 
-  const sourceDir = ITEM_SOURCE_DIR[manifest.type];
-  if (sourceDir === undefined) {
-    fail(name, `type '${manifest.type}' is not one of ${Object.keys(ITEM_SOURCE_DIR).join(", ")}`);
+  if (TYPE_TARGET_ROOTS[manifest.type] === undefined) {
+    fail(name, `type '${manifest.type}' is not one of ${Object.keys(TYPE_TARGET_ROOTS).join(", ")}`);
   }
 
   const contract = manifest.contract;
   if (contract === undefined) {
-    // A feature or widget is a host-facing surface; without a contract its
-    // labels, ports and states are unverified. Copy-only lib/component items
-    // may skip.
-    if (manifest.type === "registry:feature" || manifest.type === "registry:widget") {
+    // A block is a host-facing vertical; without a contract its labels, ports
+    // and states are unverified. Copy-only lib/component items may skip.
+    if (manifest.type === "registry:block") {
       fail(name, `${manifest.type} items must declare a contract`);
     } else {
       warn(name, "fewbie.module.json has no contract; contract checks skipped (R79-01)");
@@ -534,18 +541,95 @@ async function checkItem(name) {
     }
   }
 
-  const typesRelative = `src/${sourceDir ?? "modules"}/${name}/types.ts`;
-  const typesPath = path.join(directory, typesRelative);
-  const typesSource = await fs.readFile(typesPath, "utf8").catch(() => undefined);
-  if (typesSource === undefined) {
-    fail(name, `contract is declared but '${typesRelative}' does not exist`);
-    checked.push(name);
-    return;
-  }
+  const layers = contract.layers;
+  if (layers !== undefined) {
+    // Merged block: each layer names its own types.ts, the top-level lists are
+    // the union, and a key declared by two layers would collide in the adapter
+    // (ADR-069 D5).
+    if (semver.major(contract.version) < 2) {
+      fail(name, `contract.layers require contract.version 2.0.0 or later (got '${contract.version}')`);
+    }
+    if (!Array.isArray(layers) || layers.length === 0) {
+      fail(name, "contract.layers must be a non-empty array");
+      checked.push(name);
+      return;
+    }
+    const seenTypes = new Set();
+    for (const layer of layers) {
+      if (layer === null || typeof layer !== "object" || Array.isArray(layer)) {
+        fail(name, "contract.layers entries must be objects");
+        continue;
+      }
+      const layerName = layer.layer;
+      if (!LAYERS.includes(layerName)) {
+        fail(name, `contract.layers[].layer '${layerName}' must be one of ${LAYERS.join(", ")}`);
+        continue;
+      }
 
-  const facts = interfaceFacts(typesPath, typesSource);
-  compare(name, "labels", contract.labels, facts.labels);
-  compare(name, "ports", contract.ports, facts.ports);
+      const types = normalizeFile(name, layer.types);
+      if (types === undefined || !declared.includes(types)) {
+        fail(name, `contract.layers.${layerName}.types '${layer.types}' is not an installed file`);
+        continue;
+      }
+      if (!types.startsWith(`src/${layerName}/`)) {
+        fail(name, `contract.layers.${layerName}.types '${types}' must land under src/${layerName}/`);
+        continue;
+      }
+      if (seenTypes.has(types)) fail(name, `contract.layers declares '${types}' more than once`);
+      seenTypes.add(types);
+      for (const field of ["labels", "ports", "states"]) {
+        if (!Array.isArray(layer[field])) {
+          fail(name, `contract.layers.${layerName}.${field} must be an array`);
+          continue;
+        }
+        for (const value of layer[field]) {
+          if (typeof value !== "string" || value.length === 0) {
+            fail(name, `contract.layers.${layerName}.${field} entries must be non-empty strings`);
+          }
+        }
+        for (const repeated of duplicates(layer[field])) {
+          fail(name, `contract.layers.${layerName}.${field} repeats '${repeated}'`);
+        }
+      }
+      const layerSource = await fs.readFile(path.join(directory, types), "utf8").catch(() => undefined);
+      if (layerSource === undefined) {
+        fail(name, `contract.layers.${layerName}.types '${types}' does not exist`);
+        continue;
+      }
+      const facts = interfaceFacts(path.join(directory, types), layerSource);
+      compare(name, `layers.${layerName}.labels`, layer.labels ?? [], facts.labels);
+      compare(name, `layers.${layerName}.ports`, layer.ports ?? [], facts.ports);
+    }
+    for (const field of ["labels", "ports", "states"]) {
+      const union = [...new Set(layers.flatMap((layer) => (Array.isArray(layer?.[field]) ? layer[field] : [])))];
+      if (field === "labels") {
+        const repeated = duplicates(layers.flatMap((layer) => (Array.isArray(layer?.labels) ? layer.labels : [])));
+        for (const key of repeated) {
+          fail(name, `contract.labels key '${key}' is declared by more than one layer`);
+        }
+      }
+      const declaredList = Array.isArray(contract[field]) ? contract[field] : [];
+      const missing = union.filter((key) => !declaredList.includes(key));
+      const extra = declaredList.filter((key) => !union.includes(key));
+      if (missing.length > 0) fail(name, `contract.${field} is missing layer key(s) ${missing.join(", ")}`);
+      if (extra.length > 0) fail(name, `contract.${field} lists ${extra.join(", ")} that no layer declares`);
+    }
+  } else {
+    // v1 item: types.ts sits beside the entry file's layer directory.
+    const entryLayer = entry.split("/")[1];
+    const typesRelative = `src/${entryLayer}/${name}/types.ts`;
+    const typesPath = path.join(directory, typesRelative);
+    const typesSource = await fs.readFile(typesPath, "utf8").catch(() => undefined);
+    if (typesSource === undefined) {
+      fail(name, `contract is declared but '${typesRelative}' does not exist`);
+      checked.push(name);
+      return;
+    }
+
+    const facts = interfaceFacts(typesPath, typesSource);
+    compare(name, "labels", contract.labels, facts.labels);
+    compare(name, "ports", contract.ports, facts.ports);
+  }
 
   const atoms = await collectUiAtoms(path.join(directory, "src"));
   compare(name, "ui", contract.ui, atoms);

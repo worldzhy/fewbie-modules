@@ -20,25 +20,25 @@ function setup(overrides: Partial<ForgotPasswordPort> = {}, props: { onReset?: (
 describe("forgot-password conformance", () => {
   it("renders the request form from host labels", () => {
     setup();
-    expect(screen.getByText("label:title")).toBeInTheDocument();
+    expect(screen.getByText("label:forgotTitle")).toBeInTheDocument();
     expect(screen.getByLabelText("label:emailLabel")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "label:getCode" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "label:forgotGetCode" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "label:resetButton" })).toBeInTheDocument();
   });
 
   it("blocks an empty submission with validation errors", async () => {
     const { port, user } = setup();
     await user.click(screen.getByRole("button", { name: "label:resetButton" }));
-    expect(screen.getByText("label:emailRequired")).toBeInTheDocument();
-    expect(screen.getByText("label:codeRequired")).toBeInTheDocument();
-    expect(screen.getByText("label:passwordRequired")).toBeInTheDocument();
+    expect(screen.getByText("label:forgotEmailRequired")).toBeInTheDocument();
+    expect(screen.getByText("label:forgotCodeRequired")).toBeInTheDocument();
+    expect(screen.getByText("label:forgotPasswordRequired")).toBeInTheDocument();
     expect(port.resetPassword).not.toHaveBeenCalled();
   });
 
   it("requests a code through the port and starts the cooldown", async () => {
     const { port, user } = setup();
     await user.type(screen.getByLabelText("label:emailLabel"), "user@example.com");
-    await user.click(screen.getByRole("button", { name: "label:getCode" }));
+    await user.click(screen.getByRole("button", { name: "label:forgotGetCode" }));
     await waitFor(() => expect(port.sendResetCode).toHaveBeenCalledWith("user@example.com"));
     expect(await screen.findByText("60s")).toBeInTheDocument();
   });

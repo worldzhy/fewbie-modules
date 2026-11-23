@@ -8,7 +8,7 @@ import type {
   NotificationCenterShellLabels,
   NotificationCenterShellPort,
 } from "../src/widgets/notification-center-shell/types";
-import type { NotificationPresentationLabels } from "../../notification-presentation/src/components/notification-presentation/types";
+import type { NotificationPresentationLabels } from "../src/components/notification-presentation/types";
 
 function setup(overrides: Partial<NotificationCenterShellPort> = {}, notificationsPath?: string) {
   const port: NotificationCenterShellPort = {
