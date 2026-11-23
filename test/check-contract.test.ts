@@ -374,6 +374,45 @@ describe("check-contract install parity gate", () => {
   });
 });
 
+describe("check-contract module defaults gate (ADR-074)", () => {
+  function layeredModule(name: string, defaults: unknown): FixtureModule {
+    return featureModule(
+      name,
+      {},
+      {
+        version: "2.1.0",
+        layers: [
+          {
+            layer: "features",
+            types: `src/fewbie/modules/${name}/features/${name}/types.ts`,
+            labels: ["title"],
+            ports: [],
+            states: ["ready"],
+            defaults,
+          },
+        ],
+      },
+    );
+  }
+
+  it("accepts locale defaults that cover layer labels", async () => {
+    const result = await runGate([layeredModule("okdefaults", { en: { title: "Title" }, zh: { title: "标题" } })]);
+    expect(result.code).toBe(0);
+  });
+
+  it("fails when a default key is not one of the layer's labels", async () => {
+    const result = await runGate([layeredModule("bogus", { en: { missing: "x" } })]);
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain("key 'missing' is not one of the layer's labels");
+  });
+
+  it("fails when a default value is empty", async () => {
+    const result = await runGate([layeredModule("emptycopy", { en: { title: "  " } })]);
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain("must be a non-empty string");
+  });
+});
+
 describe("check-contract dependency graph gate", () => {
   it("fails on a registryDependencies cycle", async () => {
     const result = await runGate([
