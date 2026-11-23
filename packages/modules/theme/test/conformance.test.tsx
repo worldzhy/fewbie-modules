@@ -3,8 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 import { expectNoViolations } from "@testing/a11y";
 import { render, screen, userEvent } from "@testing/render";
 
-import { ThemeProvider } from "../src/items/theme/components/theme-provider";
-import { ThemeToggle } from "../src/items/theme/components/theme-toggle";
+import { ThemeProvider } from "../src/fewbie/modules/theme/components/theme-provider";
+import { ThemeToggle } from "../src/fewbie/modules/theme/components/theme-toggle";
 
 const { themeState, setThemeMock } = vi.hoisted(() => ({
   themeState: { resolvedTheme: "light" as string | undefined },

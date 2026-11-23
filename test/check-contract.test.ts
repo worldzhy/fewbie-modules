@@ -8,21 +8,21 @@ import { afterEach, describe, expect, it } from "vitest";
 
 /**
  * Negative fixtures for the registry's only integrity gate. Each case builds a
- * throwaway item set, points `scripts/check-contract.mjs` at it through
+ * throwaway module set, points `scripts/check-contract.mjs` at it through
  * `FEWBIE_CONTRACT_ROOT`, and asserts the concrete failure or warning. Without
- * these the gate could regress silently and only reveal itself on a real item.
+ * these the gate could regress silently and only reveal itself on a real module.
  */
 const execFileAsync = promisify(execFile);
 const gate = path.resolve(process.cwd(), "scripts/check-contract.mjs");
 const temporaryRoots: string[] = [];
 
-interface FixtureItem {
+interface FixtureModule {
   name: string;
   manifest: Record<string, unknown>;
   files: Record<string, string>;
 }
 
-function libItem(name: string, files: Record<string, string>, extra: Record<string, unknown> = {}): FixtureItem {
+function libModule(name: string, files: Record<string, string>, extra: Record<string, unknown> = {}): FixtureModule {
   return {
     name,
     manifest: { name, type: "registry:lib", files: Object.keys(files), ...extra },
@@ -35,14 +35,14 @@ function libItem(name: string, files: Record<string, string>, extra: Record<stri
  * one entry file and a contract that matches both. Overrides narrow a test to
  * the rule it exercises.
  */
-function featureItem(
+function featureModule(
   name: string,
   files: Record<string, string> = {},
   contract: Record<string, unknown> = {},
-): FixtureItem {
+): FixtureModule {
   const payload = {
-    [`src/items/${name}/features/${name}/types.ts`]: `export interface ${name}Labels {\n  title: string;\n}\n`,
-    [`src/items/${name}/features/${name}/index.ts`]: "export const value = 1;\n",
+    [`src/fewbie/modules/${name}/features/${name}/types.ts`]: `export interface ${name}Labels {\n  title: string;\n}\n`,
+    [`src/fewbie/modules/${name}/features/${name}/index.ts`]: "export const value = 1;\n",
     ...files,
   };
   return {
@@ -54,7 +54,7 @@ function featureItem(
       contract: {
         version: "1.0.0",
         framework: "^1.0.0",
-        entry: `src/items/${name}/features/${name}/index.ts`,
+        entry: `src/fewbie/modules/${name}/features/${name}/index.ts`,
         labels: ["title"],
         ports: [],
         ui: [],
@@ -72,15 +72,15 @@ interface GateResult {
   stderr: string;
 }
 
-async function runGate(items: FixtureItem[]): Promise<GateResult> {
+async function runGate(modules: FixtureModule[]): Promise<GateResult> {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), "fewbie-contract-"));
   temporaryRoots.push(directory);
-  const root = path.join(directory, "items");
-  for (const item of items) {
-    const itemDirectory = path.join(root, item.name);
+  const root = path.join(directory, "modules");
+  for (const module of modules) {
+    const itemDirectory = path.join(root, module.name);
     await fs.mkdir(itemDirectory, { recursive: true });
-    await fs.writeFile(path.join(itemDirectory, "fewbie.module.json"), JSON.stringify(item.manifest, null, 2));
-    for (const [file, source] of Object.entries(item.files)) {
+    await fs.writeFile(path.join(itemDirectory, "fewbie.module.json"), JSON.stringify(module.manifest, null, 2));
+    for (const [file, source] of Object.entries(module.files)) {
       const target = path.join(itemDirectory, file);
       await fs.mkdir(path.dirname(target), { recursive: true });
       await fs.writeFile(target, source);
@@ -104,8 +104,8 @@ afterEach(async () => {
 });
 
 describe("check-contract structural gate", () => {
-  it("accepts a structurally valid item", async () => {
-    const result = await runGate([libItem("ok", { "src/items/ok/lib/ok.ts": "export const ok = 1;\n" })]);
+  it("accepts a structurally valid module", async () => {
+    const result = await runGate([libModule("ok", { "src/fewbie/modules/ok/lib/ok.ts": "export const ok = 1;\n" })]);
     expect(result.code).toBe(0);
   });
 
@@ -113,46 +113,46 @@ describe("check-contract structural gate", () => {
     const result = await runGate([
       {
         name: "gap",
-        manifest: { name: "gap", type: "registry:lib", files: ["src/items/gap/lib/gap.ts"] },
+        manifest: { name: "gap", type: "registry:lib", files: ["src/fewbie/modules/gap/lib/gap.ts"] },
         files: {},
       },
     ]);
     expect(result.code).toBe(1);
-    expect(result.stderr).toContain("'src/items/gap/lib/gap.ts' does not exist in the item directory");
+    expect(result.stderr).toContain("'src/fewbie/modules/gap/lib/gap.ts' does not exist in the module directory");
   });
 
-  it("fails when files escape the item directory", async () => {
-    const result = await runGate([libItem("escape", { "../escape.ts": "export const x = 1;\n" })]);
+  it("fails when files escape the module directory", async () => {
+    const result = await runGate([libModule("escape", { "../escape.ts": "export const x = 1;\n" })]);
     expect(result.code).toBe(1);
-    expect(result.stderr).toContain("escapes the item directory");
+    expect(result.stderr).toContain("escapes the module directory");
   });
 
   it("fails when files use an absolute path", async () => {
-    const result = await runGate([libItem("absolute", { "/tmp/absolute.ts": "export const x = 1;\n" })]);
+    const result = await runGate([libModule("absolute", { "/tmp/absolute.ts": "export const x = 1;\n" })]);
     expect(result.code).toBe(1);
     expect(result.stderr).toContain("must be a project-relative path");
   });
 
   it("fails when the manifest name disagrees with the directory", async () => {
-    const item = libItem("alpha", { "src/items/alpha/lib/alpha.ts": "export const x = 1;\n" });
-    item.manifest.name = "beta";
-    const result = await runGate([item]);
+    const module = libModule("alpha", { "src/fewbie/modules/alpha/lib/alpha.ts": "export const x = 1;\n" });
+    module.manifest.name = "beta";
+    const result = await runGate([module]);
     expect(result.code).toBe(1);
     expect(result.stderr).toContain("does not match its directory 'alpha'");
   });
 
-  it("fails when an item ships an undeclared file", async () => {
-    const item = libItem("extra", { "src/items/extra/lib/extra.ts": "export const x = 1;\n" });
-    item.files["src/items/extra/lib/stray.ts"] = "export const y = 1;\n";
-    const result = await runGate([item]);
+  it("fails when a module ships an undeclared file", async () => {
+    const module = libModule("extra", { "src/fewbie/modules/extra/lib/extra.ts": "export const x = 1;\n" });
+    module.files["src/fewbie/modules/extra/lib/stray.ts"] = "export const y = 1;\n";
+    const result = await runGate([module]);
     expect(result.code).toBe(1);
-    expect(result.stderr).toContain("item directory ships src/items/extra/lib/stray.ts");
+    expect(result.stderr).toContain("module directory ships src/fewbie/modules/extra/lib/stray.ts");
   });
 
   it("fails when the manifest type is unknown", async () => {
-    const item = libItem("legacy", { "src/items/legacy/lib/legacy.ts": "export const x = 1;\n" });
-    item.manifest.type = "registry:widget";
-    const result = await runGate([item]);
+    const module = libModule("legacy", { "src/fewbie/modules/legacy/lib/legacy.ts": "export const x = 1;\n" });
+    module.manifest.type = "registry:widget";
+    const result = await runGate([module]);
     expect(result.code).toBe(1);
     expect(result.stderr).toContain("type 'registry:widget' is not one of");
   });
@@ -163,12 +163,16 @@ describe("check-contract type and boundary gate", () => {
     const result = await runGate([
       {
         name: "feature",
-        manifest: { name: "feature", type: "registry:block", files: ["src/items/feature/features/feature/index.ts"] },
-        files: { "src/items/feature/features/feature/index.ts": "export const feature = 1;\n" },
+        manifest: {
+          name: "feature",
+          type: "registry:block",
+          files: ["src/fewbie/modules/feature/features/feature/index.ts"],
+        },
+        files: { "src/fewbie/modules/feature/features/feature/index.ts": "export const feature = 1;\n" },
       },
     ]);
     expect(result.code).toBe(1);
-    expect(result.stderr).toContain("registry:block items must declare a contract");
+    expect(result.stderr).toContain("registry:block modules must declare a contract");
   });
 
   it("resolves types.ts beside the entry file's layer, not wherever it was filed", async () => {
@@ -178,11 +182,14 @@ describe("check-contract type and boundary gate", () => {
         manifest: {
           name: "misfiled",
           type: "registry:block",
-          files: ["src/items/misfiled/widgets/misfiled/types.ts", "src/items/misfiled/features/misfiled/index.ts"],
+          files: [
+            "src/fewbie/modules/misfiled/widgets/misfiled/types.ts",
+            "src/fewbie/modules/misfiled/features/misfiled/index.ts",
+          ],
           contract: {
             version: "1.0.0",
             framework: "^1.0.0",
-            entry: "src/items/misfiled/features/misfiled/index.ts",
+            entry: "src/fewbie/modules/misfiled/features/misfiled/index.ts",
             labels: [],
             ports: [],
             ui: [],
@@ -190,23 +197,27 @@ describe("check-contract type and boundary gate", () => {
           },
         },
         files: {
-          "src/items/misfiled/widgets/misfiled/types.ts": "export interface MisfiledLabels {}\n",
-          "src/items/misfiled/features/misfiled/index.ts": "export const misfiled = 1;\n",
+          "src/fewbie/modules/misfiled/widgets/misfiled/types.ts": "export interface MisfiledLabels {}\n",
+          "src/fewbie/modules/misfiled/features/misfiled/index.ts": "export const misfiled = 1;\n",
         },
       },
     ]);
     expect(result.code).toBe(1);
-    expect(result.stderr).toContain("'src/items/misfiled/features/misfiled/types.ts' does not exist");
+    expect(result.stderr).toContain("'src/fewbie/modules/misfiled/features/misfiled/types.ts' does not exist");
   });
 
   it("fails when a feature imports a widget", async () => {
     const result = await runGate([
       {
         name: "reverse",
-        manifest: { name: "reverse", type: "registry:block", files: ["src/items/reverse/features/reverse/index.ts"] },
+        manifest: {
+          name: "reverse",
+          type: "registry:block",
+          files: ["src/fewbie/modules/reverse/features/reverse/index.ts"],
+        },
         files: {
-          "src/items/reverse/features/reverse/index.ts":
-            'import { dock } from "@/items/reverse/widgets/copilot";\nexport const reverse = dock;\n',
+          "src/fewbie/modules/reverse/features/reverse/index.ts":
+            'import { dock } from "@/fewbie/modules/reverse/widgets/copilot";\nexport const reverse = dock;\n',
         },
       },
     ]);
@@ -216,8 +227,9 @@ describe("check-contract type and boundary gate", () => {
 
   it("fails when an import is not declared in dependencies", async () => {
     const result = await runGate([
-      libItem("undeclared", {
-        "src/items/undeclared/lib/undeclared.ts": 'import leftPad from "left-pad";\nexport const x = leftPad;\n',
+      libModule("undeclared", {
+        "src/fewbie/modules/undeclared/lib/undeclared.ts":
+          'import leftPad from "left-pad";\nexport const x = leftPad;\n',
       }),
     ]);
     expect(result.code).toBe(1);
@@ -226,9 +238,11 @@ describe("check-contract type and boundary gate", () => {
 
   it("accepts an import declared in dependencies", async () => {
     const result = await runGate([
-      libItem(
+      libModule(
         "declared",
-        { "src/items/declared/lib/declared.ts": 'import leftPad from "left-pad";\nexport const x = leftPad;\n' },
+        {
+          "src/fewbie/modules/declared/lib/declared.ts": 'import leftPad from "left-pad";\nexport const x = leftPad;\n',
+        },
         { dependencies: ["left-pad@^1.3.0"] },
       ),
     ]);
@@ -237,9 +251,9 @@ describe("check-contract type and boundary gate", () => {
 
   it("rejects a host package even when it is declared", async () => {
     const result = await runGate([
-      libItem(
+      libModule(
         "host",
-        { "src/items/host/lib/host.ts": 'import Link from "next/link";\nexport const x = Link;\n' },
+        { "src/fewbie/modules/host/lib/host.ts": 'import Link from "next/link";\nexport const x = Link;\n' },
         { dependencies: ["next@16.0.0"] },
       ),
     ]);
@@ -250,60 +264,60 @@ describe("check-contract type and boundary gate", () => {
 
 describe("check-contract install parity gate", () => {
   it("accepts a contract the CLI parser accepts", async () => {
-    const result = await runGate([featureItem("valid")]);
+    const result = await runGate([featureModule("valid")]);
     expect(result.code).toBe(0);
   });
 
   it("fails when contract.framework is not a semver range", async () => {
-    const result = await runGate([featureItem("range", {}, { framework: ">>>" })]);
+    const result = await runGate([featureModule("range", {}, { framework: ">>>" })]);
     expect(result.code).toBe(1);
     expect(result.stderr).toContain("is not a semver range");
   });
 
   it("fails when contract.framework excludes the shipping CLI", async () => {
-    const result = await runGate([featureItem("future", {}, { framework: "^99.0.0" })]);
+    const result = await runGate([featureModule("future", {}, { framework: "^99.0.0" })]);
     expect(result.code).toBe(1);
     expect(result.stderr).toContain("excludes the shipping CLI");
   });
 
   it("fails when contract.labels is empty", async () => {
-    const result = await runGate([featureItem("nolabels", {}, { labels: [] })]);
+    const result = await runGate([featureModule("nolabels", {}, { labels: [] })]);
     expect(result.code).toBe(1);
     expect(result.stderr).toContain("contract.labels must not be empty");
   });
 
   it("fails when contract.states is empty", async () => {
-    const result = await runGate([featureItem("nostates", {}, { states: [] })]);
+    const result = await runGate([featureModule("nostates", {}, { states: [] })]);
     expect(result.code).toBe(1);
     expect(result.stderr).toContain("contract.states must not be empty");
   });
 
   it("fails when a port is not a method name", async () => {
-    const result = await runGate([featureItem("badport", {}, { ports: ["not a method"] })]);
+    const result = await runGate([featureModule("badport", {}, { ports: ["not a method"] })]);
     expect(result.code).toBe(1);
     expect(result.stderr).toContain("is not a method name");
   });
 
-  it("fails when a lib item installs into a feature directory", async () => {
+  it("fails when a lib module installs into a feature directory", async () => {
     const result = await runGate([
-      libItem("misplaced", { "src/items/misplaced/features/misplaced/index.ts": "export const x = 1;\n" }),
+      libModule("misplaced", { "src/fewbie/modules/misplaced/features/misplaced/index.ts": "export const x = 1;\n" }),
     ]);
     expect(result.code).toBe(1);
-    expect(result.stderr).toContain("must land under src/items/misplaced/<lib|components>/");
+    expect(result.stderr).toContain("must land under src/fewbie/modules/misplaced/<lib|components>/");
   });
 
   it("fails when files repeats an entry", async () => {
-    const item = libItem("dup", { "src/items/dup/lib/dup.ts": "export const d = 1;\n" });
-    item.manifest.files = ["src/items/dup/lib/dup.ts", "src/items/dup/lib/dup.ts"];
-    const result = await runGate([item]);
+    const module = libModule("dup", { "src/fewbie/modules/dup/lib/dup.ts": "export const d = 1;\n" });
+    module.manifest.files = ["src/fewbie/modules/dup/lib/dup.ts", "src/fewbie/modules/dup/lib/dup.ts"];
+    const result = await runGate([module]);
     expect(result.code).toBe(1);
-    expect(result.stderr).toContain("files declares 'src/items/dup/lib/dup.ts' more than once");
+    expect(result.stderr).toContain("files declares 'src/fewbie/modules/dup/lib/dup.ts' more than once");
   });
 
   it("reads single-quoted imports too", async () => {
     const result = await runGate([
-      libItem("quoted", {
-        "src/items/quoted/lib/quoted.ts": "import leftPad from 'left-pad';\nexport const x = leftPad;\n",
+      libModule("quoted", {
+        "src/fewbie/modules/quoted/lib/quoted.ts": "import leftPad from 'left-pad';\nexport const x = leftPad;\n",
       }),
     ]);
     expect(result.code).toBe(1);
@@ -312,8 +326,8 @@ describe("check-contract install parity gate", () => {
 
   it("fails when a feature reaches a widget through a relative path", async () => {
     const result = await runGate([
-      featureItem("relative", {
-        "src/items/relative/features/relative/index.ts":
+      featureModule("relative", {
+        "src/fewbie/modules/relative/features/relative/index.ts":
           'import { dock } from "../../widgets/copilot";\nexport const value = dock;\n',
       }),
     ]);
@@ -321,10 +335,11 @@ describe("check-contract install parity gate", () => {
     expect(result.stderr).toContain("widgets compose features, never the reverse");
   });
 
-  it("accepts a relative import inside the item", async () => {
+  it("accepts a relative import inside the module", async () => {
     const result = await runGate([
-      featureItem("inside", {
-        "src/items/inside/features/inside/index.ts": 'import { value } from "./types";\nexport const other = value;\n',
+      featureModule("inside", {
+        "src/fewbie/modules/inside/features/inside/index.ts":
+          'import { value } from "./types";\nexport const other = value;\n',
       }),
     ]);
     expect(result.code).toBe(0);
@@ -332,8 +347,8 @@ describe("check-contract install parity gate", () => {
 
   it("fails when a relative import escapes the project root", async () => {
     const result = await runGate([
-      libItem("leak", {
-        "src/items/leak/lib/leak.ts": 'import x from "../../../../../outside";\nexport const y = x;\n',
+      libModule("leak", {
+        "src/fewbie/modules/leak/lib/leak.ts": 'import x from "../../../../../../outside";\nexport const y = x;\n',
       }),
     ]);
     expect(result.code).toBe(1);
@@ -342,15 +357,15 @@ describe("check-contract install parity gate", () => {
 
   it("accepts a relative import provided by a registry dependency", async () => {
     const result = await runGate([
-      libItem(
+      libModule(
         "consumer",
         {
-          "src/items/consumer/lib/consumer.ts":
-            'import { p } from "@/items/provider/lib/provider";\nexport const c = p;\n',
+          "src/fewbie/modules/consumer/lib/consumer.ts":
+            'import { p } from "@/fewbie/modules/provider/lib/provider";\nexport const c = p;\n',
         },
         { registryDependencies: ["provider"] },
       ),
-      libItem("provider", { "src/items/provider/lib/provider.ts": "export const p = 1;\n" }),
+      libModule("provider", { "src/fewbie/modules/provider/lib/provider.ts": "export const p = 1;\n" }),
     ]);
     expect(result.code).toBe(0);
   });
@@ -359,8 +374,8 @@ describe("check-contract install parity gate", () => {
 describe("check-contract dependency graph gate", () => {
   it("fails on a registryDependencies cycle", async () => {
     const result = await runGate([
-      libItem("a", { "src/items/a/lib/a.ts": "export const a = 1;\n" }, { registryDependencies: ["b"] }),
-      libItem("b", { "src/items/b/lib/b.ts": "export const b = 1;\n" }, { registryDependencies: ["a"] }),
+      libModule("a", { "src/fewbie/modules/a/lib/a.ts": "export const a = 1;\n" }, { registryDependencies: ["b"] }),
+      libModule("b", { "src/fewbie/modules/b/lib/b.ts": "export const b = 1;\n" }, { registryDependencies: ["a"] }),
     ]);
     expect(result.code).toBe(1);
     expect(result.stderr).toContain("registryDependencies form a cycle: a -> b -> a");
@@ -368,12 +383,12 @@ describe("check-contract dependency graph gate", () => {
 
   it("warns when a registry dependency is never imported", async () => {
     const result = await runGate([
-      libItem(
+      libModule(
         "consumer",
-        { "src/items/consumer/lib/consumer.ts": "export const c = 1;\n" },
+        { "src/fewbie/modules/consumer/lib/consumer.ts": "export const c = 1;\n" },
         { registryDependencies: ["provider"] },
       ),
-      libItem("provider", { "src/items/provider/lib/provider.ts": "export const p = 1;\n" }),
+      libModule("provider", { "src/fewbie/modules/provider/lib/provider.ts": "export const p = 1;\n" }),
     ]);
     expect(result.code).toBe(0);
     expect(result.stderr).toContain("registryDependencies lists 'provider' but no installed file imports it");
@@ -381,15 +396,15 @@ describe("check-contract dependency graph gate", () => {
 
   it("stays quiet when the dependency provides an import", async () => {
     const result = await runGate([
-      libItem(
+      libModule(
         "consumer",
         {
-          "src/items/consumer/lib/consumer.ts":
-            'import { p } from "@/items/provider/lib/provider";\nexport const c = p;\n',
+          "src/fewbie/modules/consumer/lib/consumer.ts":
+            'import { p } from "@/fewbie/modules/provider/lib/provider";\nexport const c = p;\n',
         },
         { registryDependencies: ["provider"] },
       ),
-      libItem("provider", { "src/items/provider/lib/provider.ts": "export const p = 1;\n" }),
+      libModule("provider", { "src/fewbie/modules/provider/lib/provider.ts": "export const p = 1;\n" }),
     ]);
     expect(result.code).toBe(0);
     expect(result.stderr).not.toContain("no installed file imports it");

@@ -4,9 +4,9 @@
  * `fewbie.module.json`'s `contract` is its executable projection. This script asserts
  * the two agree, so a label, port or ui atom cannot drift between them.
  *
- * It also owns the structural invariants of the registry: an item directory is
+ * It also owns the structural invariants of the registry: a module directory is
  * named after its manifest, declares every file it ships, and ships nothing it
- * does not declare. Copy-only payload items (lib/component level) have no
+ * does not declare. Copy-only payload modules (lib/component level) have no
  * contract yet; they still go through the structural checks and only their
  * contract comparison is skipped with a warning.
  */
@@ -32,7 +32,7 @@ const STATE_EVIDENCE = {
   ready: undefined,
 };
 /**
- * shadcn/ui primitives the framework ships. An item renders against this list
+ * shadcn/ui primitives the framework ships. An module renders against this list
  * only; a new primitive must be added here (and to the template) deliberately.
  */
 const ALLOWED_UI = new Set([
@@ -65,15 +65,17 @@ const ALLOWED_UI = new Set([
  */
 const LAYERS = ["features", "widgets", "components", "lib"];
 
-/** Layer of a project-relative file, or undefined outside the item-first tree. */
+/** Layer of a project-relative file, or undefined outside the module-first tree. */
 function layerOf(file) {
   const segments = file.split("/");
-  return segments[0] === "src" && segments[1] === "items" && LAYERS.includes(segments[3]) ? segments[3] : undefined;
+  return segments[0] === "src" && segments[1] === "fewbie" && segments[2] === "modules" && LAYERS.includes(segments[4])
+    ? segments[4]
+    : undefined;
 }
 /**
  * Package names the framework runtime or the shadcn-initialized template always
  * provide. Any other bare import must be declared in `dependencies`, otherwise a
- * host installs the item and its build fails on the missing package (R82-13).
+ * host installs the module and its build fails on the missing package (R82-13).
  */
 const FRAMEWORK_PACKAGES = new Set([
   "class-variance-authority",
@@ -85,21 +87,21 @@ const FRAMEWORK_PACKAGES = new Set([
   "tailwind-merge",
 ]);
 /**
- * Host runtime packages an item must never import. They only exist inside a
- * Next.js host, so depending on one would make the item installable in that
+ * Host runtime packages a module must never import. They only exist inside a
+ * Next.js host, so depending on one would make the module installable in that
  * host only; declaring the dependency is not an escape hatch (R84-03).
  */
 const HOST_PACKAGES = new Set(["next"]);
 /**
  * Alias targets the template owns. Items may import them without a registry
- * dependency because no item ships them; the coupling is declared here so a new
+ * dependency because no module ships them; the coupling is declared here so a new
  * framework path is a reviewed change rather than an invisible one (R82-13).
  */
 const FRAMEWORK_MODULES = new Set(["@/lib/api-client", "@/lib/utils"]);
 /**
  * Layers each manifest type may install into. A feature stays a feature so host
  * lint sees it as one; a lib may ship a component payload beside its logic
- * (ADR-066). Every payload file lands under the item's own item-first tree
+ * (ADR-066). Every payload file lands under the module's own module-first tree
  * (ADR-070 D1); any other landing path would install a file the host layer
  * rules never see, so the gate rejects it here instead of at the first host build.
  */
@@ -109,19 +111,19 @@ const TYPE_LAYERS = {
   "registry:component": ["components", "lib"],
 };
 const PORT_METHOD = /^[A-Za-z_$][\w$]*$/;
-/** Container directory holding every authored item (ADR-059). */
-const ITEMS_DIR = path.join("packages", "modules");
+/** Container directory holding every authored module (ADR-059). */
+const MODULES_DIR = path.join("packages", "modules");
 /** Item-private directories that are not part of the installable payload. */
-const ITEM_INFRASTRUCTURE = new Set(["test", "node_modules"]);
+const MODULE_INFRASTRUCTURE = new Set(["test", "node_modules"]);
 
 // `FEWBIE_CONTRACT_ROOT` lets the fixture suite point the same gate at a
 // throwaway registry; production runs keep the repository default.
 const root = process.env.FEWBIE_CONTRACT_ROOT
   ? path.resolve(process.env.FEWBIE_CONTRACT_ROOT)
-  : path.join(process.cwd(), ITEMS_DIR);
+  : path.join(process.cwd(), MODULES_DIR);
 /**
  * Version of the CLI hosts actually run. A framework range can be well-formed
- * and still exclude that CLI, in which case the item passes this gate and then
+ * and still exclude that CLI, in which case the module passes this gate and then
  * fails to install (R87-01). The CLI is a dev dependency: the gate asks the
  * same question an install asks, against the released version rather than this
  * repository's working tree.
@@ -137,17 +139,17 @@ const errors = [];
 const warnings = [];
 const checked = [];
 const skipped = [];
-/** Parsed manifest of every item, keyed by directory name (built before checks). */
+/** Parsed manifest of every module, keyed by directory name (built before checks). */
 const manifests = new Map();
-/** Declared payload sources of every item, keyed by directory name. */
-const itemSources = new Map();
+/** Declared payload sources of every module, keyed by directory name. */
+const moduleSources = new Map();
 
-function fail(item, message) {
-  errors.push(`${item}: ${message}`);
+function fail(module, message) {
+  errors.push(`${module}: ${message}`);
 }
 
-function warn(item, message) {
-  warnings.push(`${item}: ${message}`);
+function warn(module, message) {
+  warnings.push(`${module}: ${message}`);
 }
 
 function duplicates(list) {
@@ -160,29 +162,30 @@ function duplicates(list) {
   return [...repeated];
 }
 
-function compare(item, field, declared, actual) {
+function compare(module, field, declared, actual) {
   // A duplicate is a real defect: the host would be asked for the same label or
   // port twice, and a Set-based comparison used to hide it (R82-14).
   const declaredDuplicates = duplicates(declared);
-  if (declaredDuplicates.length > 0) fail(item, `contract.${field} repeats ${declaredDuplicates.join(", ")}`);
+  if (declaredDuplicates.length > 0) fail(module, `contract.${field} repeats ${declaredDuplicates.join(", ")}`);
   const actualDuplicates = duplicates([...actual]);
-  if (actualDuplicates.length > 0) fail(item, `types.ts ${field} repeats ${actualDuplicates.join(", ")}`);
+  if (actualDuplicates.length > 0) fail(module, `types.ts ${field} repeats ${actualDuplicates.join(", ")}`);
 
   const expected = [...declared].sort();
   const found = [...actual].sort();
   const missing = expected.filter((entry) => !found.includes(entry));
   const extra = found.filter((entry) => !expected.includes(entry));
-  if (missing.length > 0) fail(item, `contract.${field} lists ${missing.join(", ")} but types.ts does not`);
-  if (extra.length > 0) fail(item, `types.ts exposes ${extra.join(", ")} but contract.${field} does not list it`);
+  if (missing.length > 0) fail(module, `contract.${field} lists ${missing.join(", ")} but types.ts does not`);
+  if (extra.length > 0) fail(module, `types.ts exposes ${extra.join(", ")} but contract.${field} does not list it`);
 }
 
-function comparePayload(item, declared, actual) {
+function comparePayload(module, declared, actual) {
   const expected = [...new Set(declared)].sort();
   const found = [...actual].sort();
   const missing = expected.filter((entry) => !found.includes(entry));
   const extra = found.filter((entry) => !expected.includes(entry));
-  if (missing.length > 0) fail(item, `files lists ${missing.join(", ")} but the item directory does not contain them`);
-  if (extra.length > 0) fail(item, `item directory ships ${extra.join(", ")} but files does not declare them`);
+  if (missing.length > 0)
+    fail(module, `files lists ${missing.join(", ")} but the module directory does not contain them`);
+  if (extra.length > 0) fail(module, `module directory ships ${extra.join(", ")} but files does not declare them`);
 }
 
 function memberName(member) {
@@ -225,7 +228,7 @@ async function collectUiAtoms(directory) {
   for (const entry of await fs.readdir(directory, { withFileTypes: true })) {
     const target = path.join(directory, entry.name);
     if (entry.isDirectory()) {
-      if (ITEM_INFRASTRUCTURE.has(entry.name)) continue;
+      if (MODULE_INFRASTRUCTURE.has(entry.name)) continue;
       for (const atom of await collectUiAtoms(target)) atoms.add(atom);
       continue;
     }
@@ -250,7 +253,7 @@ async function declaredSources(directory, files) {
 /**
  * Import specifiers used by the declared payload, paired with the file that
  * imports them so relative targets can be resolved. Both quote styles count:
- * an item could otherwise skip the whole check by switching quotes (R87-03).
+ * a module could otherwise skip the whole check by switching quotes (R87-03).
  */
 function importSpecifiers(sources) {
   const specifiers = [];
@@ -296,7 +299,7 @@ function resolveTarget(file, specifier) {
   return path.posix.normalize(path.posix.join(path.posix.dirname(file), specifier));
 }
 
-/** Project-relative targets of the item's own imports (framework ones excluded). */
+/** Project-relative targets of the module's own imports (framework ones excluded). */
 function importedTargets(sources) {
   const targets = new Set();
   for (const { file, specifier } of importSpecifiers(sources)) {
@@ -312,7 +315,7 @@ function importedTargets(sources) {
 /**
  * Every import must resolve to something the host will actually have: a
  * framework package, a declared npm dependency, a shadcn primitive, an
- * allowlisted framework module, or a file shipped by the item or one of its
+ * allowlisted framework module, or a file shipped by the module or one of its
  * registry dependencies (R82-13).
  */
 function checkImports(name, manifest, declared, sources) {
@@ -364,7 +367,7 @@ function checkImports(name, manifest, declared, sources) {
     }
     const pkg = packageName(specifier);
     if (HOST_PACKAGES.has(pkg)) {
-      fail(name, `imports host package '${pkg}'; registry items must not depend on the host framework`);
+      fail(name, `imports host package '${pkg}'; registry modules must not depend on the host framework`);
       continue;
     }
     if (FRAMEWORK_PACKAGES.has(pkg) || declaredPackages.has(pkg)) continue;
@@ -372,7 +375,7 @@ function checkImports(name, manifest, declared, sources) {
   }
 }
 
-/** Every installable file under `<item>/`, as project-relative POSIX paths. */
+/** Every installable file under `<module>/`, as project-relative POSIX paths. */
 async function payloadFiles(directory) {
   const files = [];
   async function walk(current) {
@@ -380,7 +383,7 @@ async function payloadFiles(directory) {
       const target = path.join(current, entry.name);
       const relative = path.relative(directory, target).split(path.sep).join("/");
       if (entry.isDirectory()) {
-        if (ITEM_INFRASTRUCTURE.has(entry.name)) continue;
+        if (MODULE_INFRASTRUCTURE.has(entry.name)) continue;
         await walk(target);
         continue;
       }
@@ -393,24 +396,24 @@ async function payloadFiles(directory) {
 }
 
 /** Reject absolute or escaping paths; returns the normalized POSIX form. */
-function normalizeFile(item, file) {
+function normalizeFile(module, file) {
   if (typeof file !== "string" || file.length === 0) {
-    fail(item, "files entries must be non-empty strings");
+    fail(module, "files entries must be non-empty strings");
     return undefined;
   }
   if (path.isAbsolute(file)) {
-    fail(item, `files entry '${file}' must be a project-relative path`);
+    fail(module, `files entry '${file}' must be a project-relative path`);
     return undefined;
   }
   const normalized = path.posix.normalize(file);
   if (normalized === ".." || normalized.startsWith("../")) {
-    fail(item, `files entry '${file}' escapes the item directory`);
+    fail(module, `files entry '${file}' escapes the module directory`);
     return undefined;
   }
   return normalized;
 }
 
-async function checkItem(name) {
+async function checkModule(name) {
   const directory = path.join(root, name);
   const manifest = manifests.get(name);
   if (manifest.name !== name) {
@@ -423,7 +426,7 @@ async function checkItem(name) {
     if (normalized === undefined) continue;
     declared.push(normalized);
     const stat = await fs.lstat(path.join(directory, normalized)).catch(() => undefined);
-    if (stat === undefined) fail(name, `files entry '${normalized}' does not exist in the item directory`);
+    if (stat === undefined) fail(name, `files entry '${normalized}' does not exist in the module directory`);
     else if (stat.isSymbolicLink()) fail(name, `files entry '${normalized}' must be a real file, not a symlink`);
   }
   for (const duplicate of duplicates(declared)) fail(name, `files declares '${duplicate}' more than once`);
@@ -433,14 +436,15 @@ async function checkItem(name) {
       const segments = file.split("/");
       if (
         segments[0] !== "src" ||
-        segments[1] !== "items" ||
-        segments[2] !== name ||
-        !typeLayers.includes(segments[3]) ||
-        segments.length < 5
+        segments[1] !== "fewbie" ||
+        segments[2] !== "modules" ||
+        segments[3] !== name ||
+        !typeLayers.includes(segments[4]) ||
+        segments.length < 6
       ) {
         fail(
           name,
-          `files entry '${file}' must land under src/items/${name}/<${typeLayers.join("|")}>/ for type '${manifest.type}' (ADR-070)`,
+          `files entry '${file}' must land under src/fewbie/modules/${name}/<${typeLayers.join("|")}>/ for type '${manifest.type}' (ADR-070)`,
         );
       }
     }
@@ -460,12 +464,12 @@ async function checkItem(name) {
   }
   for (const dependency of manifest.registryDependencies ?? []) {
     if (!manifests.has(dependency)) {
-      fail(name, `registryDependencies lists '${dependency}', which is not an item in this registry`);
+      fail(name, `registryDependencies lists '${dependency}', which is not a module in this registry`);
     }
   }
 
   const sources = await declaredSources(directory, declared);
-  itemSources.set(name, { declared, sources });
+  moduleSources.set(name, { declared, sources });
   checkImports(name, manifest, declared, sources);
 
   if (TYPE_LAYERS[manifest.type] === undefined) {
@@ -475,9 +479,9 @@ async function checkItem(name) {
   const contract = manifest.contract;
   if (contract === undefined) {
     // A block is a host-facing vertical; without a contract its labels, ports
-    // and states are unverified. Copy-only lib/component items may skip.
+    // and states are unverified. Copy-only lib/component modules may skip.
     if (manifest.type === "registry:block") {
-      fail(name, `${manifest.type} items must declare a contract`);
+      fail(name, `${manifest.type} modules must declare a contract`);
     } else {
       warn(name, "fewbie.module.json has no contract; contract checks skipped (R79-01)");
     }
@@ -536,7 +540,7 @@ async function checkItem(name) {
   }
   // A state is a behaviour claim, not a vocabulary choice: the payload should
   // actually implement it (R82-14). Evidence is a token scan, so a miss is a
-  // warning — an item may render a state through a helper this scan cannot see
+  // warning — a module may render a state through a helper this scan cannot see
   // (R87-08).
   const sourceText = sources.map((source) => source.source).join("\n");
   for (const state of Array.isArray(contract.states) ? contract.states : []) {
@@ -576,8 +580,11 @@ async function checkItem(name) {
         fail(name, `contract.layers.${layerName}.types '${layer.types}' is not an installed file`);
         continue;
       }
-      if (!types.startsWith(`src/items/${name}/${layerName}/`)) {
-        fail(name, `contract.layers.${layerName}.types '${types}' must land under src/items/${name}/${layerName}/`);
+      if (!types.startsWith(`src/fewbie/modules/${name}/${layerName}/`)) {
+        fail(
+          name,
+          `contract.layers.${layerName}.types '${types}' must land under src/fewbie/modules/${name}/${layerName}/`,
+        );
         continue;
       }
       if (seenTypes.has(types)) fail(name, `contract.layers declares '${types}' more than once`);
@@ -620,7 +627,7 @@ async function checkItem(name) {
       if (extra.length > 0) fail(name, `contract.${field} lists ${extra.join(", ")} that no layer declares`);
     }
   } else {
-    // v1 item: types.ts sits beside the entry file (ADR-070 item-first tree).
+    // v1 module: types.ts sits beside the entry file (ADR-070 module-first tree).
     const typesRelative = `${path.posix.dirname(entry)}/types.ts`;
     const typesPath = path.join(directory, typesRelative);
     const typesSource = await fs.readFile(typesPath, "utf8").catch(() => undefined);
@@ -643,7 +650,7 @@ async function checkItem(name) {
 
 /**
  * The install order is derived from `registryDependencies`, so a cycle can
- * never be installed: the host would either loop or land the items in an order
+ * never be installed: the host would either loop or land the modules in an order
  * where one import has no file yet (R86-06). Detect cycles over the declared
  * graph and report the concrete loop.
  */
@@ -677,13 +684,13 @@ function checkDependencyCycles() {
 }
 
 /**
- * A declared registry dependency exists so the host installs the item that
+ * A declared registry dependency exists so the host installs the module that
  * provides an import. When nothing in the payload imports it, the declaration
  * only makes installs heavier; warn instead of failing so a deliberate
  * provider-only dependency stays possible (R86-06).
  */
 function checkUnusedDependencies() {
-  for (const [name, { sources }] of itemSources) {
+  for (const [name, { sources }] of moduleSources) {
     const targets = importedTargets(sources);
     for (const dependency of manifests.get(name)?.registryDependencies ?? []) {
       const files = manifests.get(dependency)?.files ?? [];
@@ -693,17 +700,17 @@ function checkUnusedDependencies() {
   }
 }
 
-const itemsRootExists = await fs
+const modulesRootExists = await fs
   .access(root)
   .then(() => true)
   .catch(() => false);
-if (!itemsRootExists) {
-  console.error(`Contract check failed: ${ITEMS_DIR} is missing; run this from the registry repository root.`);
+if (!modulesRootExists) {
+  console.error(`Contract check failed: ${MODULES_DIR} is missing; run this from the registry repository root.`);
   process.exit(1);
 }
 
 const entries = await fs.readdir(root, { withFileTypes: true });
-const itemNames = [];
+const moduleNames = [];
 for (const entry of entries) {
   if (!entry.isDirectory() || entry.name.startsWith(".")) {
     continue;
@@ -712,14 +719,14 @@ for (const entry of entries) {
     .access(path.join(root, entry.name, "fewbie.module.json"))
     .then(() => true)
     .catch(() => false);
-  if (hasManifest) itemNames.push(entry.name);
+  if (hasManifest) moduleNames.push(entry.name);
 }
 // Parse every manifest first: import checks and registryDependencies validation
-// need to see items other than the one being checked.
-for (const name of itemNames) {
+// need to see modules other than the one being checked.
+for (const name of moduleNames) {
   manifests.set(name, JSON.parse(await fs.readFile(path.join(root, name, "fewbie.module.json"), "utf8")));
 }
-for (const name of itemNames) await checkItem(name);
+for (const name of moduleNames) await checkModule(name);
 
 checkDependencyCycles();
 checkUnusedDependencies();
@@ -740,7 +747,7 @@ if (errors.length > 0) {
   process.exit(1);
 }
 console.log(
-  `✓ ${checked.length} item contract(s) match their types.ts interface: ${checked.sort().join(", ")}${
-    skipped.length > 0 ? ` (${skipped.length} item(s) skipped: no contract — ${skipped.sort().join(", ")})` : ""
+  `✓ ${checked.length} module contract(s) match their types.ts interface: ${checked.sort().join(", ")}${
+    skipped.length > 0 ? ` (${skipped.length} module(s) skipped: no contract — ${skipped.sort().join(", ")})` : ""
   }`,
 );

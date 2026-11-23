@@ -6,14 +6,14 @@
   - ADR:
 - [ ] Contract changes (`fewbie.module.json` `contract`) bump `contract.version` and keep `types.ts` as the source of truth.
 
-## Item admission
+## Module admission
 
-- [ ] New or changed items carry no host business vocabulary, no host runtime import (e.g. `next/*`), and no import outside the fewbie framework surface.
+- [ ] New or changed modules carry no host business vocabulary, no host runtime import (e.g. `next/*`), and no import outside the fewbie framework surface.
 - [ ] The payload stays copy-assemblable: adding the item plus its declared `dependencies` / `registryDependencies` is enough, with no handwritten host adapter.
 
 ## Gate evidence
 
-- [ ] `npm run check:contract` passes and its summary reports the real number of contract-checked items.
+- [ ] `npm run check:contract` passes and its summary reports the real number of contract-checked modules.
 - [ ] `npm run check:types` passes.
 - [ ] `npm test` passes, including a behaviour test for any logic or transport change.
 - [ ] `npm run format:check` passes.

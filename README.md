@@ -1,10 +1,10 @@
 # fewbie-modules
 
 The single authored registry for [fewbie](https://github.com/worldzhy/devbie)
-applications — both page-level modules and lib/component items.
+applications — both page-level modules and lib/component modules.
 
-Items live in `packages/modules/`, and every directory there holding an
-`fewbie.module.json` is one installable item. A host declares the registry in
+Modules live in `packages/modules/`, and every directory there holding an
+`fewbie.module.json` is one installable module. A host declares the registry in
 `fewbie.json` and installs with the CLI:
 
 ```json
@@ -19,37 +19,31 @@ npx fewbie modules add login-page
 ```
 
 The CLI clones the declared registry into `~/.fewbie/registry/<hash>`, checks
-out `ref`, and copies each item's files to their project-relative targets. Set
+out `ref`, and copies each module's files to their project-relative targets. Set
 `FEWBIE_REGISTRY_PATH` to a local checkout to work against uncommitted changes.
 
-This repository is the only place items are authored. `@devbie/fewbie-cli`
+This repository is the only place modules are authored. `@devbie/fewbie-cli`
 ships a generated snapshot of it for hosts that declare no registry; that
 snapshot is regenerated, never hand-edited (ADR-058 in `devbie`).
 
-## Items
+## Modules
 
-| Item                      | Targets                                                                | Description                                                                                                   |
-| ------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `login-page`              | `src/features/login-page/**`                                           | Password/code login, inline TOTP challenge, third-party providers                                             |
-| `forgot-password`         | `src/features/forgot-password/**`                                      | Email plus verification code password reset with a live strength checklist                                    |
-| `profile-settings`        | `src/features/profile-settings/**`                                     | Account profile card: names and display name, persisted by the host                                           |
-| `security-settings`       | `src/features/security-settings/**`                                    | Active sessions with per-row sign-out, and authenticator-app enrollment                                       |
-| `preferences-settings`    | `src/features/preferences-settings/**`                                 | Interface language, theme and timezone, with host-side cache and cookie updates                               |
-| `auth`                    | `src/lib/auth.ts`                                                      | Login/logout helpers and session-expired redirect binding                                                     |
-| `data-table`              | `src/components/data-table.tsx`                                        | Generic data table with client-side sorting and pagination                                                    |
-| `frontend-monitor-sdk`    | `src/components/frontend-monitor.tsx`                                  | Browser-side monitoring component for the root layout                                                         |
-| `login-form`              | `src/features/login-form/**`                                           | Password login card built on the `auth` util                                                                  |
-| `password-checklist`      | `src/features/password-checklist/**`                                   | Live password rule checklist with a reusable predicate                                                        |
-| `notification-center`     | `src/widgets/notification-center/**`                                   | Header bell and unread ticker plus detail sheet/panel; data, copy and categories are host ports               |
-| `copilot`                 | `src/widgets/copilot/**`                                               | Resizable chat dock with tool cards, confirmations and result blocks; transport and page scope are host ports |
-| `query-client`            | `src/lib/query-client.ts`, `src/components/query-provider.tsx`         | TanStack Query client with App Router wiring                                                                  |
-| `settings-required-state` | `src/features/settings-required-state/**`                              | Empty state for missing required configuration                                                                |
-| `sse-stream`              | `src/lib/sse-stream.ts`                                                | POST-based Server-Sent Events transport                                                                       |
-| `theme`                   | `src/components/theme-provider.tsx`, `src/components/theme-toggle.tsx` | next-themes provider and light/dark toggle                                                                    |
+| Module                 | Targets                                      | Description                                                                                                   |
+| ---------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `account-access`       | `src/fewbie/modules/account-access/**`       | Login page, password reset and the `auth` lib                                                                 |
+| `account-settings`     | `src/fewbie/modules/account-settings/**`     | Profile, security and preferences settings features                                                           |
+| `copilot`              | `src/fewbie/modules/copilot/**`              | Resizable chat dock with tool cards, confirmations and result blocks; transport and page scope are host ports |
+| `data-table`           | `src/fewbie/modules/data-table/**`           | Generic data table with client-side sorting and pagination                                                    |
+| `frontend-monitor-sdk` | `src/fewbie/modules/frontend-monitor-sdk/**` | Browser-side monitoring component for the root layout                                                         |
+| `notification-center`  | `src/fewbie/modules/notification-center/**`  | Header bell and unread ticker plus detail sheet/panel; data, copy and categories are host ports               |
+| `password-checklist`   | `src/fewbie/modules/password-checklist/**`   | Live password rule checklist with a reusable predicate                                                        |
+| `query-client`         | `src/fewbie/modules/query-client/**`         | TanStack Query client with App Router wiring                                                                  |
+| `sse-stream`           | `src/fewbie/modules/sse-stream/**`           | POST-based Server-Sent Events transport                                                                       |
+| `theme`                | `src/fewbie/modules/theme/**`                | next-themes provider and light/dark toggle                                                                    |
 
-An item directory mirrors the target layout:
-`packages/modules/login-page/src/features/login-page/login-page.tsx` is copied to
-`src/features/login-page/login-page.tsx` in the host.
+A module directory mirrors the target layout:
+`packages/modules/account-access/src/fewbie/modules/account-access/features/login-page/login-page.tsx`
+is copied to `src/fewbie/modules/account-access/features/login-page/login-page.tsx` in the host (ADR-070).
 
 ## Registry layout
 
@@ -58,64 +52,62 @@ registry infrastructure and never reaches a host:
 
 | Path                                                | Role                                                                                                       |
 | --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `packages/modules/<item>/fewbie.module.json`        | Manifest: `name`, `type`, `files`, optional `contract`                                                     |
-| `packages/modules/<item>/<file>`                    | Payload, mirroring the host target path in `files`                                                         |
-| `packages/modules/<item>/test/`                     | Conformance tests for that item                                                                            |
+| `packages/modules/<module>/fewbie.module.json`      | Manifest: `name`, `type`, `files`, optional `contract`                                                     |
+| `packages/modules/<module>/<file>`                  | Payload, mirroring the host target path in `files`                                                         |
+| `packages/modules/<module>/test/`                   | Conformance tests for that module                                                                          |
 | `harness/framework/`                                | Host-surface doubles: `@/components/ui/*` and `@/lib/{utils,api-client}`, used by `check:types` and vitest |
 | `harness/testing/`                                  | Repository-private vitest bootstrap and test utilities, imported as `@testing/*`                           |
 | `scripts/`                                          | `check-contract.mjs`                                                                                       |
 | `package.json`, `vitest.config.ts`, `tsconfig.json` | Tooling for this repository                                                                                |
 
-`check-contract.mjs` enforces the structural invariants on every item:
+`check-contract.mjs` enforces the structural invariants on every module:
 directory name equals `fewbie.module.json.name`, every `files` entry is a safe
-repository-relative path that exists under the item directory, and the on-disk
+repository-relative path that exists under the module directory, and the on-disk
 payload (excluding `test/`) matches `files` exactly. It also fails on a
 `registryDependencies` cycle (the install order can never be built) and warns
 when a declared registry dependency is not imported by any installed file.
 
 ## Contracts
 
-- Feature items (`registry:feature` under `src/features/**`) carry a
-  `contract` in `fewbie.module.json`: `version`, `framework`, `entry`, `labels`,
-  `ports`, `ui`, `states`. `types.ts` is the type truth, the contract is its
-  executable projection, and `check-contract.mjs` asserts they agree.
-- Widget items (`registry:widget` under `src/widgets/**`) are cross-page shell
-  compositions (header bell, chat dock). They carry the same contract as
-  features and may import installed feature and widget items, but no feature
-  may import a widget (ADR-066).
-- Shared component items (`registry:component` under `src/components/**`) may
-  declare the same `contract`; their `types.ts` lives next to the component
-  (`src/components/<name>/types.ts`). A component without a contract still
-  passes the structural checks and only skips the contract comparison
-  (ADR-063).
-- Business vocabulary stays out of items: notification keys, categories, skill
+- `registry:block` modules carry a `contract` in `fewbie.module.json`:
+  `version`, `framework`, `entry`, `layers`. Each layer declares its `types.ts`
+  path, `labels`, `ports`, `ui` and `states`; `types.ts` is the type truth, the
+  contract is its executable projection, and `check-contract.mjs` asserts they
+  agree (ADR-057, ADR-069).
+- A block may span `features`, `widgets`, `components` and `lib`; the layer of a
+  file (`src/fewbie/modules/<module>/<layer>/`) drives the host's import
+  direction lint. features never import widgets; components and lib never import
+  features or widgets.
+- `registry:component` and `registry:lib` modules may omit the contract; they
+  still pass the structural checks and only skip the contract comparison.
+- Business vocabulary stays out of modules: notification keys, categories, skill
   catalogs and route labels arrive through props (`resolveMeta`,
   `categoryVisuals`, `pageContext`, `renderChart`), while navigation is
   delegated to `onNavigate`/`onOpenLink` callbacks.
-- Modules depend only on the fewbie framework surface (`@/components/ui/*` and
+- Modules depend only on the fewbie framework surface (`@/fewbie/ui/*` and
   React); they never import a host's i18n, router, transport or toast library.
 - Copy, transport and side effects enter through props (`labels`, `port`,
   `onSignedIn`), so a host keeps its own i18n and API client.
-- Item manifests use the authored fewbie form: `files` are project-relative
+- Module manifests use the authored fewbie form: `files` are project-relative
   path strings, `type` is one of `registry:lib`, `registry:component`,
-  `registry:widget`, `registry:feature`.
+  `registry:block`.
 
 ## Gates
 
 ```sh
-npm test               # item conformance tests
+npm test               # module conformance tests
 npm run check:contract # structural invariants + contract/types.ts parity
 npm run format:check   # prettier
 ```
 
 ## Test coverage
 
-Every item that renders host-facing UI has a conformance suite under
-`packages/modules/<item>/test/`. Copy-only items whose behaviour belongs to a
+Every module that renders host-facing UI has a conformance suite under
+`packages/modules/<module>/test/`. Copy-only modules whose behaviour belongs to a
 package they delegate to are exempt, and the reason stays here:
 
-| Item                   | Reason                                                                                                                   |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `auth`                 | Thin wrapper over `@/lib/api-client`; the request/session gate is framework-owned and tested in the starter.             |
-| `query-client`         | Singleton plus provider with no branching of its own; App Router wiring is exercised by the host build.                  |
-| `frontend-monitor-sdk` | Scaffolds a client component around `@devbie/frontend-monitor-sdk`; the SDK owns the monitoring behaviour and its tests. |
+| Module                  | Reason                                                                                                                   |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `account-access` (auth) | Thin wrapper over `@/lib/api-client`; the request/session gate is framework-owned and tested in the starter.             |
+| `query-client`          | Singleton plus provider with no branching of its own; App Router wiring is exercised by the host build.                  |
+| `frontend-monitor-sdk`  | Scaffolds a client component around `@devbie/frontend-monitor-sdk`; the SDK owns the monitoring behaviour and its tests. |

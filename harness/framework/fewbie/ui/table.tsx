@@ -4,7 +4,7 @@ import type { HTMLAttributes, ReactNode, TdHTMLAttributes, ThHTMLAttributes } fr
  * Compile-time stand-in for the shadcn `table` primitive.
  *
  * The registry harness ships only the primitives its conformance tests render;
- * items that use `table` still need a shape to type against.
+ * modules that use `table` still need a shape to type against.
  */
 
 export function Table({ children, ...props }: HTMLAttributes<HTMLTableElement> & { children?: ReactNode }) {

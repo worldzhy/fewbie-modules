@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { expectNoViolations } from "@testing/a11y";
 import { render, screen, userEvent, within } from "@testing/render";
 
-import { DataTable, type Column } from "../src/items/data-table/components/data-table";
+import { DataTable, type Column } from "../src/fewbie/modules/data-table/components/data-table";
 
 interface Row extends Record<string, unknown> {
   name: string;

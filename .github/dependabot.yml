@@ -1,6 +1,6 @@
 # Dependabot configuration for the fewbie module registry.
 #
-# This repository is the single authored store for fewbie items (ADR-059 in
+# This repository is the single authored store for fewbie modules (ADR-059 in
 # worldzhy/devbie). Dependabot watches the npm toolchain (TypeScript, Vitest,
 # Testing Library, React) and GitHub Actions so the contract gate keeps
 # running on a current, CVE-clean toolchain.
@@ -35,7 +35,7 @@ updates:
     # Policy: no major upgrades by default. Majors are milestone-driven
     # (CVE / feature need / ecosystem EOL) and executed as verified
     # milestones on dev, never via automated PRs — CI cannot observe
-    # behavior-level regressions in items that hosts copy verbatim.
+    # behavior-level regressions in modules that hosts copy verbatim.
     ignore:
       - dependency-name: "*"
         update-types:
