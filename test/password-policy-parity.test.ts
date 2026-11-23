@@ -1,10 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
-import {
-  checkPasswordPolicy,
-  isStrongPassword,
-} from "../packages/modules/password-checklist/components/password-checklist/password-checklist";
+import { checkPasswordPolicy, isStrongPassword } from "@/fewbie/modules/account-access/lib/password-policy";
 
 /**
  * Truth table for the backend policy: `validator.isStrongPassword` with its
@@ -50,7 +47,7 @@ test("forgot-password reuses the shared predicate instead of a local mirror", as
     path.resolve(__dirname, "../packages/modules/account-access/features/forgot-password/forgot-password.tsx"),
     "utf8",
   );
-  expect(source).toContain('from "@/fewbie/modules/password-checklist/components/password-checklist"');
+  expect(source).toContain('from "@/fewbie/modules/account-access/lib/password-policy"');
   expect(source).not.toContain("PASSWORD_PATTERN");
   expect(source).not.toContain("[^\\w\\s]");
 });
