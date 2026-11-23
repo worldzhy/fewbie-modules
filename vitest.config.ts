@@ -17,14 +17,13 @@ export default defineConfig({
       "@/fewbie/modules/account-access/lib/auth": fileURLToPath(
         new URL("./packages/modules/account-access/lib/auth.ts", import.meta.url),
       ),
+      "@/fewbie/modules/account-access/lib/password-policy": fileURLToPath(
+        new URL("./packages/modules/account-access/lib/password-policy.ts", import.meta.url),
+      ),
       "@/fewbie/modules/sse-stream/lib/sse-stream": fileURLToPath(
         new URL("./packages/modules/sse-stream/lib/sse-stream.ts", import.meta.url),
       ),
-      // Cross-item imports go through the item's public entry (forgot-password
-      // reuses password-checklist's predicate).
-      "@/fewbie/modules/password-checklist/components/password-checklist": fileURLToPath(
-        new URL("./packages/modules/password-checklist/components/password-checklist/index.ts", import.meta.url),
-      ),
+      // Cross-item imports go through the item's public entry.
       "@/fewbie/modules/notification-center/components/notification-presentation": fileURLToPath(
         new URL(
           "./packages/modules/notification-center/components/notification-presentation/index.ts",

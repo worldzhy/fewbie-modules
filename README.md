@@ -30,13 +30,12 @@ snapshot is regenerated, never hand-edited (ADR-058 in `devbie`).
 
 | Module                 | Targets                                      | Description                                                                                                   |
 | ---------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `account-access`       | `src/fewbie/modules/account-access/**`       | Login page, password reset and the `auth` lib                                                                 |
+| `account-access`       | `src/fewbie/modules/account-access/**`       | Login page, password reset and the `auth` plus password-policy libs                                           |
 | `account-settings`     | `src/fewbie/modules/account-settings/**`     | Profile, security and preferences settings features                                                           |
 | `copilot`              | `src/fewbie/modules/copilot/**`              | Resizable chat dock with tool cards, confirmations and result blocks; transport and page scope are host ports |
 | `data-table`           | `src/fewbie/modules/data-table/**`           | Generic data table with client-side sorting and pagination                                                    |
 | `frontend-monitor-sdk` | `src/fewbie/modules/frontend-monitor-sdk/**` | Browser-side monitoring component for the root layout                                                         |
 | `notification-center`  | `src/fewbie/modules/notification-center/**`  | Header bell and unread ticker plus detail sheet/panel; data, copy and categories are host ports               |
-| `password-checklist`   | `src/fewbie/modules/password-checklist/**`   | Live password rule checklist with a reusable predicate                                                        |
 | `sse-stream`           | `src/fewbie/modules/sse-stream/**`           | SSE frame decoder; the request and auth stay in the host                                                      |
 | `theme`                | `src/fewbie/modules/theme/**`                | next-themes provider and light/dark toggle                                                                    |
 
