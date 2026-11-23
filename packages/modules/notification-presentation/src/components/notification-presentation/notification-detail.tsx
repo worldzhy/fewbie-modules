@@ -1,153 +1,26 @@
 "use client";
 
-import { createElement, useCallback, useEffect, useState } from "react";
+import { useState, createElement } from "react";
 import { AlertTriangle, ExternalLink, Inbox, LoaderCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { useNotificationCenter } from "./notification-center";
-import {
-  formatRelativeTime,
-  formatTimestamp,
-  interpolate,
-  resolveLocale,
-  severityBadgeClass,
-  severityLabelKey,
-  stripTitleMarker,
-  type NotificationGroup,
-} from "./format";
-import type { NotificationDeliveryAttempt, NotificationRecord } from "./types";
+import { NotificationContextTable } from "./context-table";
+import { formatTimestamp, interpolate, resolveLocale, stripTitleMarker } from "./format";
+import { useNotificationPresentation } from "./presentation";
+import { RelativeTime } from "./relative-time";
+import { RecoveredBadge, SeverityBadge } from "./severity-badge";
+import type { NotificationDeliveryAttempt, NotificationGroup, NotificationRecord } from "./types";
 
-/** Current time, refreshed periodically so relative labels do not go stale. */
-export function useNow(intervalMs = 60_000): Date {
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(new Date()), intervalMs);
-    return () => window.clearInterval(timer);
-  }, [intervalMs]);
-  return now;
-}
-
-export function RelativeTime({ value, className }: { value: string; className?: string }) {
-  const { locale } = useNotificationCenter();
-  const resolved = resolveLocale(locale);
-  const now = useNow(60_000);
-  return (
-    <time dateTime={value} title={formatTimestamp(value, resolved, "medium")} className={className}>
-      {formatRelativeTime(value, resolved, now)}
-    </time>
-  );
-}
-
-export function SeverityBadge({ severity, className }: { severity: string; className?: string }) {
-  const { labels } = useNotificationCenter();
-  return (
-    <Badge variant="outline" className={`${severityBadgeClass(severity)} ${className ?? ""}`}>
-      {labels[severityLabelKey(severity)]}
-    </Badge>
-  );
-}
-
-export function RecoveredBadge({ className }: { className?: string }) {
-  const { labels } = useNotificationCenter();
-  return (
-    <Badge variant="outline" className={`border-success/30 bg-success/10 text-success ${className ?? ""}`}>
-      {labels.badgeAlertRecovered}
-    </Badge>
-  );
-}
-
-/** camelCase payload keys become readable labels, e.g. "projectName" -> "Project Name". */
-function humanizeKey(key: string): string {
-  const spaced = key.replace(/([A-Z])/g, " $1").replace(/[_-]+/g, " ");
-  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
-}
-
-function formatPayloadValue(value: unknown): string {
-  if (value === null || value === undefined) return "";
-  if (typeof value === "object") return JSON.stringify(value, null, 2);
-  return String(value);
-}
-
-/** Key/value table of the notification context payload, shared by sheet and panel. */
-export function NotificationContextTable({ payload }: { payload: unknown }) {
-  const { labels } = useNotificationCenter();
-  const entries = Object.entries((payload as Record<string, unknown> | null | undefined) ?? {}).filter(
-    ([, value]) => value !== null && value !== undefined && value !== "",
-  );
-  if (entries.length === 0) return null;
-
-  return (
-    <div className="space-y-2">
-      <span className="text-xs font-medium text-muted-foreground">{labels.contextLabel}</span>
-      <dl className="divide-y rounded-lg border">
-        {entries.map(([key, value]) => (
-          <div key={key} className="grid grid-cols-3 gap-2 px-3 py-2 text-sm">
-            <dt className="col-span-1 text-xs leading-5 text-muted-foreground">{humanizeKey(key)}</dt>
-            <dd
-              className={`col-span-2 break-words text-foreground ${
-                typeof value === "object" ? "font-mono text-xs whitespace-pre-wrap" : "whitespace-pre-line"
-              }`}
-            >
-              {formatPayloadValue(value)}
-            </dd>
-          </div>
-        ))}
-      </dl>
-    </div>
-  );
-}
-
-interface OpenNotificationOptions {
-  /** Open the detail sheet even when the notification carries a link. */
-  forceSheet?: boolean;
-}
-
-/**
- * Shared "open a notification" behavior: mark it read, then either hand the
- * link to the host or fall back to the detail sheet. Navigation safety and
- * routing belong to the host, so this hook only calls `onOpenLink`.
- */
-export function useOpenNotification() {
-  const host = useNotificationCenter();
-  const [selected, setSelected] = useState<NotificationRecord | null>(null);
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const { onError } = host;
-
-  const openNotification = useCallback(
-    async (notification: NotificationRecord, options: OpenNotificationOptions = {}) => {
-      try {
-        if (!notification.read) await host.port.markRead(notification.id);
-      } catch (caught) {
-        onError?.(caught);
-        return;
-      }
-      if (notification.link && !options.forceSheet) {
-        host.onOpenLink(notification.link);
-        return;
-      }
-      setSelected(notification);
-      setSheetOpen(true);
-    },
-    [host, onError],
-  );
-
-  const sheetProps = {
-    notification: selected,
-    open: sheetOpen,
-    onOpenChange: setSheetOpen,
-    onOpenLink: (notification: NotificationRecord) => {
-      setSheetOpen(false);
-      if (notification.link) host.onOpenLink(notification.link);
-    },
-  };
-
-  return { openNotification, sheetProps };
+/** Status badge for a lifecycle state that reads as a recovery, not an alert level. */
+function StatusBadge({ notification }: { notification: NotificationRecord }) {
+  if (notification.status === "resolved") return <RecoveredBadge />;
+  return <SeverityBadge severity={notification.severity} />;
 }
 
 function DetailHeader({ notification }: { notification: NotificationRecord }) {
-  const { labels, resolveMeta, categoryVisuals, fallbackVisual } = useNotificationCenter();
+  const { labels, resolveMeta, categoryVisuals, fallbackVisual } = useNotificationPresentation();
   const meta = resolveMeta(notification.notificationKey);
   const visual = (meta.category ? categoryVisuals[meta.category] : undefined) ?? fallbackVisual;
   return (
@@ -158,7 +31,7 @@ function DetailHeader({ notification }: { notification: NotificationRecord }) {
       <div className="flex min-w-0 flex-col gap-1.5">
         <SheetTitle className="text-base leading-snug">{stripTitleMarker(notification.title)}</SheetTitle>
         <div className="flex flex-wrap items-center gap-2">
-          {notification.status === "resolved" ? <RecoveredBadge /> : <SeverityBadge severity={notification.severity} />}
+          <StatusBadge notification={notification} />
           <Badge variant="secondary">{meta.label}</Badge>
           {notification.read ? <Badge variant="outline">{labels.read}</Badge> : <Badge>{labels.unread}</Badge>}
         </div>
@@ -167,6 +40,7 @@ function DetailHeader({ notification }: { notification: NotificationRecord }) {
   );
 }
 
+/** Narrow-screen detail surface; the host owns when it opens. */
 export function NotificationDetailSheet({
   notification,
   open,
@@ -178,8 +52,8 @@ export function NotificationDetailSheet({
   onOpenChange: (open: boolean) => void;
   onOpenLink: (notification: NotificationRecord) => void;
 }) {
-  const { labels, resolveSource, onNavigate, alertCenterPath } = useNotificationCenter();
-  const locale = resolveLocale(useNotificationCenter().locale);
+  const { labels, resolveSource, onNavigate, alertCenterPath, locale } = useNotificationPresentation();
+  const resolved = resolveLocale(locale);
 
   if (!notification) {
     return (
@@ -197,7 +71,7 @@ export function NotificationDetailSheet({
         <SheetHeader>
           <DetailHeader notification={notification} />
           <SheetDescription className="space-y-1">
-            <span className="block">{formatTimestamp(notification.createdAt, locale)}</span>
+            <span className="block">{formatTimestamp(notification.createdAt, resolved)}</span>
             <span className="block font-mono text-xs">{notification.notificationKey}</span>
           </SheetDescription>
         </SheetHeader>
@@ -225,7 +99,11 @@ export function NotificationDetailSheet({
         <Separator />
         <SheetFooter>
           {notification.sourceType === "alert" ? (
-            <Button className="w-full" variant="outline" onClick={() => onNavigate(alertCenterPath ?? "/alert-center")}>
+            <Button
+              className="w-full"
+              variant="outline"
+              onClick={() => onNavigate?.(alertCenterPath ?? "/alert-center")}
+            >
               <AlertTriangle className="size-4" />
               {labels.openAlertCenter}
             </Button>
@@ -243,13 +121,13 @@ export function NotificationDetailSheet({
 }
 
 function DeliveryReasonBlock({ notificationId }: { notificationId: string }) {
-  const { labels, port, locale } = useNotificationCenter();
+  const { labels, locale, loadDeliveryAttempt } = useNotificationPresentation();
   const [open, setOpen] = useState(false);
   const [attempt, setAttempt] = useState<NotificationDeliveryAttempt | null>(null);
   const [busy, setBusy] = useState(false);
-  const load = port.fetchDeliveryAttempt;
 
-  if (!load) return null;
+  if (!loadDeliveryAttempt) return null;
+  const load = loadDeliveryAttempt;
 
   const toggle = () => {
     const next = !open;
@@ -304,9 +182,9 @@ export function NotificationDetailPanel({
   group: NotificationGroup | null;
   onOpenLink: (notification: NotificationRecord) => void;
 }) {
-  const { labels, resolveMeta, categoryVisuals, fallbackVisual, resolveSource, onNavigate, alertCenterPath } =
-    useNotificationCenter();
-  const locale = resolveLocale(useNotificationCenter().locale);
+  const { labels, resolveMeta, categoryVisuals, fallbackVisual, resolveSource, onNavigate, alertCenterPath, locale } =
+    useNotificationPresentation();
+  const resolved = resolveLocale(locale);
 
   if (!group) {
     return (
@@ -331,25 +209,21 @@ export function NotificationDetailPanel({
         <div className="min-w-0 flex-1">
           <h2 className="text-base leading-snug font-semibold text-balance">{stripTitleMarker(notification.title)}</h2>
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
-            {notification.status === "resolved" ? (
-              <RecoveredBadge />
-            ) : (
-              <SeverityBadge severity={notification.severity} />
-            )}
+            <StatusBadge notification={notification} />
             <Badge variant="secondary">{meta.label}</Badge>
             {group.records.length > 1 ? (
               <Badge variant="outline">{interpolate(labels.occurrencesCount, { count: group.records.length })}</Badge>
             ) : null}
           </div>
           <p className="mt-1.5 flex flex-wrap items-center gap-x-3 text-xs text-muted-foreground">
-            <span>{formatTimestamp(notification.createdAt, locale)}</span>
+            <span>{formatTimestamp(notification.createdAt, resolved)}</span>
             <span className="font-mono">{notification.notificationKey}</span>
           </p>
         </div>
         {notification.link || notification.sourceType === "alert" ? (
           <div className="flex items-center gap-2">
             {notification.sourceType === "alert" ? (
-              <Button size="sm" variant="outline" onClick={() => onNavigate(alertCenterPath ?? "/alert-center")}>
+              <Button size="sm" variant="outline" onClick={() => onNavigate?.(alertCenterPath ?? "/alert-center")}>
                 <AlertTriangle className="size-4" />
                 {labels.openAlertCenter}
               </Button>
@@ -391,7 +265,7 @@ export function NotificationDetailPanel({
               {group.records.map((record) => (
                 <li key={record.id} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
                   <span className="tabular-nums text-foreground">
-                    {formatTimestamp(record.createdAt, locale, "medium")}
+                    {formatTimestamp(record.createdAt, resolved, "medium")}
                   </span>
                   <RelativeTime value={record.createdAt} className="text-xs text-muted-foreground" />
                 </li>

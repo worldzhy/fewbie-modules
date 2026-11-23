@@ -1,10 +1,8 @@
 /**
- * Locale formatting, title normalization and grouping helpers. These are
- * generic presentation concerns, so they stay in the item; anything that names
- * a host's notification keys lives in the host and enters through `resolveMeta`
- * and `resolveSource`.
+ * Locale formatting and severity styling shared by every notification surface.
+ * Anything that names a host's notification keys lives in the host and enters
+ * through `resolveMeta` / `resolveSource`.
  */
-import type { NotificationRecord } from "./types";
 
 const STATUS_MARKERS = ["\u{1F534}", "\u{1F7E0}", "\u{1F7E2}", "\u{1F518}"] as const;
 
@@ -51,34 +49,6 @@ export function formatTimestamp(value: string, locale: string, timeStyle: "short
   return new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle }).format(new Date(value));
 }
 
-/** Day bucket key: `today`/`yesterday` sentinels, otherwise an ISO date. */
-export function dayBucket(value: string, now: Date = new Date()): "today" | "yesterday" | string {
-  const target = new Date(value);
-  const sameDay = (left: Date, right: Date) =>
-    left.getFullYear() === right.getFullYear() &&
-    left.getMonth() === right.getMonth() &&
-    left.getDate() === right.getDate();
-  if (sameDay(target, now)) return "today";
-  const yesterday = new Date(now);
-  yesterday.setDate(now.getDate() - 1);
-  if (sameDay(target, yesterday)) return "yesterday";
-  return `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, "0")}-${String(target.getDate()).padStart(2, "0")}`;
-}
-
-const SEVERITY_DOT: Record<string, string> = {
-  critical: "bg-destructive",
-  high: "bg-destructive/70",
-  medium: "bg-warning",
-  low: "bg-primary",
-  unknown: "bg-muted-foreground/50",
-};
-
-/** Recovery is a lifecycle state, not an alert level, so it reads green. */
-export function notificationDotClass(status: string, severity: string): string {
-  if (status === "resolved") return "bg-success";
-  return SEVERITY_DOT[severity] ?? SEVERITY_DOT.unknown;
-}
-
 const SEVERITY_BADGE: Record<string, string> = {
   critical: "border-destructive/30 bg-destructive/10 text-destructive",
   high: "border-destructive/30 bg-destructive/10 text-destructive",
@@ -106,51 +76,4 @@ export function severityLabelKey(
     default:
       return "severityUnknown";
   }
-}
-
-/** Repeated alerts (same key, title and source on the same day) collapse into one row. */
-export interface NotificationGroup {
-  key: string;
-  latest: NotificationRecord;
-  records: NotificationRecord[];
-  unreadIds: string[];
-}
-
-export interface NotificationDayGroup {
-  label: "today" | "yesterday" | string;
-  groups: NotificationGroup[];
-}
-
-export function groupNotifications(
-  records: NotificationRecord[],
-  resolveSource?: (notification: NotificationRecord) => string | null,
-): NotificationDayGroup[] {
-  const days = new Map<string, Map<string, NotificationGroup>>();
-
-  for (const record of records) {
-    const day = dayBucket(record.createdAt);
-    const groupKey = [day, record.notificationKey, record.title, resolveSource?.(record) ?? ""].join("|");
-    let groups = days.get(day);
-    if (!groups) {
-      groups = new Map();
-      days.set(day, groups);
-    }
-    const existing = groups.get(groupKey);
-    if (existing) {
-      existing.records.push(record);
-      if (!record.read) existing.unreadIds.push(record.id);
-      continue;
-    }
-    groups.set(groupKey, {
-      key: groupKey,
-      latest: record,
-      records: [record],
-      unreadIds: record.read ? [] : [record.id],
-    });
-  }
-
-  return Array.from(days.values()).map((groups) => {
-    const list = Array.from(groups.values());
-    return { label: dayBucket(list[0].latest.createdAt), groups: list };
-  });
 }

@@ -1,25 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import type { NotificationCenterProps } from "./types";
-
-const NotificationCenterContext = createContext<NotificationCenterProps | null>(null);
-
-/**
- * Supplies copy, transport and host callbacks to every surface in this item.
- * The provider is required: labels and ports are never hard-coded here.
- */
-export function NotificationCenterProvider({ children, ...props }: NotificationCenterProps & { children: ReactNode }) {
-  return <NotificationCenterContext.Provider value={props}>{children}</NotificationCenterContext.Provider>;
-}
-
-export function useNotificationCenter(): NotificationCenterProps {
-  const value = useContext(NotificationCenterContext);
-  if (!value) {
-    throw new Error("NotificationCenter surfaces must render inside <NotificationCenterProvider>.");
-  }
-  return value;
-}
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export interface PolledResult<T> {
   data: T | undefined;
@@ -29,9 +10,9 @@ export interface PolledResult<T> {
 }
 
 /**
- * Minimal polling loader: no query library, so the item installs into any host
- * without a `QueryClientProvider`. The first load owns the loading state; later
- * polls refresh silently.
+ * Minimal polling loader for injected loaders: no query library, so the item
+ * installs into any host without a `QueryClientProvider`. The first load owns
+ * the loading state; later polls refresh silently.
  */
 export function usePolled<T>(load: () => Promise<T>, intervalMs: number, enabled = true): PolledResult<T> {
   const [data, setData] = useState<T | undefined>(undefined);

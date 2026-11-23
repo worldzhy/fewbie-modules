@@ -26,6 +26,12 @@ export default defineConfig({
       "@/features/password-checklist": fileURLToPath(
         new URL("./packages/modules/password-checklist/src/features/password-checklist/index.ts", import.meta.url),
       ),
+      "@/components/notification-presentation": fileURLToPath(
+        new URL(
+          "./packages/modules/notification-presentation/src/components/notification-presentation/index.ts",
+          import.meta.url,
+        ),
+      ),
       "@testing": fileURLToPath(new URL("./harness/testing", import.meta.url)),
       "@": fileURLToPath(new URL("./harness/framework", import.meta.url)),
     },
