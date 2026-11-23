@@ -15,25 +15,22 @@ export default defineConfig({
       // Item-provided lib modules resolve to the modules themselves; everything
       // else under `@/` is the framework surface the harness stubs.
       "@/fewbie/modules/account-access/lib/auth": fileURLToPath(
-        new URL("./packages/modules/account-access/src/fewbie/modules/account-access/lib/auth.ts", import.meta.url),
+        new URL("./packages/modules/account-access/lib/auth.ts", import.meta.url),
       ),
       "@/fewbie/modules/query-client/lib/query-client": fileURLToPath(
-        new URL("./packages/modules/query-client/src/fewbie/modules/query-client/lib/query-client.ts", import.meta.url),
+        new URL("./packages/modules/query-client/lib/query-client.ts", import.meta.url),
       ),
       "@/fewbie/modules/sse-stream/lib/sse-stream": fileURLToPath(
-        new URL("./packages/modules/sse-stream/src/fewbie/modules/sse-stream/lib/sse-stream.ts", import.meta.url),
+        new URL("./packages/modules/sse-stream/lib/sse-stream.ts", import.meta.url),
       ),
       // Cross-item imports go through the item's public entry (forgot-password
       // reuses password-checklist's predicate).
       "@/fewbie/modules/password-checklist/components/password-checklist": fileURLToPath(
-        new URL(
-          "./packages/modules/password-checklist/src/fewbie/modules/password-checklist/components/password-checklist/index.ts",
-          import.meta.url,
-        ),
+        new URL("./packages/modules/password-checklist/components/password-checklist/index.ts", import.meta.url),
       ),
       "@/fewbie/modules/notification-center/components/notification-presentation": fileURLToPath(
         new URL(
-          "./packages/modules/notification-center/src/fewbie/modules/notification-center/components/notification-presentation/index.ts",
+          "./packages/modules/notification-center/components/notification-presentation/index.ts",
           import.meta.url,
         ),
       ),

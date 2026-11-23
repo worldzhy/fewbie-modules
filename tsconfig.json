@@ -12,34 +12,20 @@
     "resolveJsonModule": true,
     "types": ["node", "vitest/globals", "@testing-library/jest-dom"],
     "paths": {
-      "@/fewbie/modules/account-access/lib/auth": [
-        "./packages/modules/account-access/src/fewbie/modules/account-access/lib/auth.ts"
-      ],
-      "@/fewbie/modules/query-client/lib/query-client": [
-        "./packages/modules/query-client/src/fewbie/modules/query-client/lib/query-client.ts"
-      ],
-      "@/fewbie/modules/sse-stream/lib/sse-stream": [
-        "./packages/modules/sse-stream/src/fewbie/modules/sse-stream/lib/sse-stream.ts"
-      ],
+      "@/fewbie/modules/account-access/lib/auth": ["./packages/modules/account-access/lib/auth.ts"],
+      "@/fewbie/modules/query-client/lib/query-client": ["./packages/modules/query-client/lib/query-client.ts"],
+      "@/fewbie/modules/sse-stream/lib/sse-stream": ["./packages/modules/sse-stream/lib/sse-stream.ts"],
       // TypeScript allows one `*` per path entry, so cross-item module imports
       // are listed explicitly (R84-06).
       "@/fewbie/modules/password-checklist/components/password-checklist": [
-        "./packages/modules/password-checklist/src/fewbie/modules/password-checklist/components/password-checklist"
+        "./packages/modules/password-checklist/components/password-checklist"
       ],
       "@/fewbie/modules/notification-center/components/notification-presentation": [
-        "./packages/modules/notification-center/src/fewbie/modules/notification-center/components/notification-presentation"
+        "./packages/modules/notification-center/components/notification-presentation"
       ],
       "@testing/*": ["./harness/testing/*"],
       "@/*": ["./harness/framework/*"]
     }
   },
-  "include": [
-    "harness",
-    "vitest.config.ts",
-    "test",
-    "packages/modules/*/src/**/*.ts",
-    "packages/modules/*/src/**/*.tsx",
-    "packages/modules/*/test/**/*.ts",
-    "packages/modules/*/test/**/*.tsx"
-  ]
+  "include": ["harness", "vitest.config.ts", "test", "packages/modules/*/*/**/*.ts", "packages/modules/*/*/**/*.tsx"]
 }
