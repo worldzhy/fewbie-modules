@@ -116,6 +116,17 @@ const MODULES_DIR = path.join("packages", "modules");
 /** Item-private directories that are not part of the installable payload. */
 const MODULE_INFRASTRUCTURE = new Set(["test", "node_modules"]);
 
+/** Project target a declared storage path lands at (ADR-070, ADR-071). */
+function installTarget(name, file) {
+  return `src/fewbie/modules/${name}/${file}`;
+}
+
+/** Storage path of a declared target; undefined when it leaves the module root. */
+function storagePath(name, file) {
+  const prefix = `src/fewbie/modules/${name}/`;
+  return file.startsWith(prefix) ? file.slice(prefix.length) : undefined;
+}
+
 // `FEWBIE_CONTRACT_ROOT` lets the fixture suite point the same gate at a
 // throwaway registry; production runs keep the repository default.
 const root = process.env.FEWBIE_CONTRACT_ROOT
@@ -240,11 +251,13 @@ async function collectUiAtoms(directory) {
 }
 
 /** Read the declared payload's TypeScript sources (test dir excluded). */
-async function declaredSources(directory, files) {
+async function declaredSources(name, directory, files) {
   const sources = [];
   for (const file of files) {
     if (!/\.(ts|tsx)$/.test(file)) continue;
-    const source = await fs.readFile(path.join(directory, file), "utf8").catch(() => undefined);
+    const storage = storagePath(name, file);
+    if (storage === undefined) continue;
+    const source = await fs.readFile(path.join(directory, storage), "utf8").catch(() => undefined);
     if (source !== undefined) sources.push({ file, source });
   }
   return sources;
@@ -375,8 +388,8 @@ function checkImports(name, manifest, declared, sources) {
   }
 }
 
-/** Every installable file under `<module>/`, as project-relative POSIX paths. */
-async function payloadFiles(directory) {
+/** Every installable file under `<module>/`, as project-relative POSIX targets. */
+async function payloadFiles(name, directory) {
   const files = [];
   async function walk(current) {
     for (const entry of await fs.readdir(current, { withFileTypes: true })) {
@@ -388,7 +401,7 @@ async function payloadFiles(directory) {
         continue;
       }
       if (relative === "fewbie.module.json") continue;
-      files.push(relative);
+      files.push(installTarget(name, relative));
     }
   }
   await walk(directory);
@@ -425,9 +438,15 @@ async function checkModule(name) {
     const normalized = normalizeFile(name, file);
     if (normalized === undefined) continue;
     declared.push(normalized);
-    const stat = await fs.lstat(path.join(directory, normalized)).catch(() => undefined);
-    if (stat === undefined) fail(name, `files entry '${normalized}' does not exist in the module directory`);
-    else if (stat.isSymbolicLink()) fail(name, `files entry '${normalized}' must be a real file, not a symlink`);
+    // Payload is stored at the target minus the install root (ADR-071).
+    const storage = storagePath(name, normalized);
+    const stat =
+      storage === undefined ? undefined : await fs.lstat(path.join(directory, storage)).catch(() => undefined);
+    if (storage !== undefined && stat === undefined) {
+      fail(name, `files entry '${normalized}' does not exist in the module directory`);
+    } else if (stat?.isSymbolicLink()) {
+      fail(name, `files entry '${normalized}' must be a real file, not a symlink`);
+    }
   }
   for (const duplicate of duplicates(declared)) fail(name, `files declares '${duplicate}' more than once`);
   const typeLayers = TYPE_LAYERS[manifest.type];
@@ -449,7 +468,7 @@ async function checkModule(name) {
       }
     }
   }
-  comparePayload(name, declared, await payloadFiles(directory));
+  comparePayload(name, declared, await payloadFiles(name, directory));
 
   for (const field of ["dependencies", "registryDependencies"]) {
     const list = manifest[field];
@@ -468,7 +487,7 @@ async function checkModule(name) {
     }
   }
 
-  const sources = await declaredSources(directory, declared);
+  const sources = await declaredSources(name, directory, declared);
   moduleSources.set(name, { declared, sources });
   checkImports(name, manifest, declared, sources);
 
@@ -603,12 +622,16 @@ async function checkModule(name) {
           fail(name, `contract.layers.${layerName}.${field} repeats '${repeated}'`);
         }
       }
-      const layerSource = await fs.readFile(path.join(directory, types), "utf8").catch(() => undefined);
+      const layerStorage = storagePath(name, types);
+      const layerSource =
+        layerStorage === undefined
+          ? undefined
+          : await fs.readFile(path.join(directory, layerStorage), "utf8").catch(() => undefined);
       if (layerSource === undefined) {
         fail(name, `contract.layers.${layerName}.types '${types}' does not exist`);
         continue;
       }
-      const facts = interfaceFacts(path.join(directory, types), layerSource);
+      const facts = interfaceFacts(path.join(directory, layerStorage), layerSource);
       compare(name, `layers.${layerName}.labels`, layer.labels ?? [], facts.labels);
       compare(name, `layers.${layerName}.ports`, layer.ports ?? [], facts.ports);
     }
@@ -629,8 +652,10 @@ async function checkModule(name) {
   } else {
     // v1 module: types.ts sits beside the entry file (ADR-070 module-first tree).
     const typesRelative = `${path.posix.dirname(entry)}/types.ts`;
-    const typesPath = path.join(directory, typesRelative);
-    const typesSource = await fs.readFile(typesPath, "utf8").catch(() => undefined);
+    const typesStorage = storagePath(name, typesRelative);
+    const typesPath = typesStorage === undefined ? undefined : path.join(directory, typesStorage);
+    const typesSource =
+      typesPath === undefined ? undefined : await fs.readFile(typesPath, "utf8").catch(() => undefined);
     if (typesSource === undefined) {
       fail(name, `contract is declared but '${typesRelative}' does not exist`);
       checked.push(name);
@@ -642,7 +667,7 @@ async function checkModule(name) {
     compare(name, "ports", contract.ports, facts.ports);
   }
 
-  const atoms = await collectUiAtoms(path.join(directory, "src"));
+  const atoms = await collectUiAtoms(directory);
   compare(name, "ui", contract.ui, atoms);
 
   checked.push(name);

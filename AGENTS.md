@@ -4,10 +4,11 @@
 
 fewbie module registry: the single authored store for fewbie modules. Each
 module lives under `packages/modules/<module>/` (ADR-059 in `devbie`) and
-carries `fewbie.module.json` plus the payload files it lists. Payload paths
-mirror the host target tree: a file declared at
-`packages/modules/<module>/src/fewbie/modules/<module>/<layer>/<target>/*` is
-copied verbatim to `src/fewbie/modules/<module>/<layer>/<target>/*` (ADR-070).
+carries `fewbie.module.json` plus the payload files it lists. `files` entries
+are installation targets (`src/fewbie/modules/<module>/<layer>/<target>/*`);
+the payload is stored at the same path minus that install root, so
+`packages/modules/<module>/<layer>/<target>/*` installs to
+`src/fewbie/modules/<module>/<layer>/<target>/*` (ADR-070, ADR-071).
 
 `@devbie/fewbie-cli` ships a generated snapshot of this repository for hosts
 that declare no registry (ADR-058 in `devbie`). Author every module here; the
@@ -23,10 +24,10 @@ A directory belongs here only when all of these hold:
   No host i18n, router, transport, toast, or state library imports.
 - It is copy-assemblable: the host renders the exported component with props
   and adds no hand-written adapter beyond the ports the module documents.
-- Module files mirror their target path
-  (`packages/modules/account-access/src/fewbie/modules/account-access/features/login-page/*`
-  lands at `src/fewbie/modules/account-access/features/login-page/*`), so the
-  CLI copies them verbatim.
+- Module payload is stored at the install target minus the install root
+  (`packages/modules/account-access/features/login-page/*` installs at
+  `src/fewbie/modules/account-access/features/login-page/*`); `files` keeps the
+  installation path, so one manifest spelling describes where every file lands.
 - Target directories follow one granularity rule: a unit that carries a
   `contract` opens a target directory named after its main file
   (`features/login-page/login-page.tsx`); files with no contract stay flat at
@@ -34,10 +35,9 @@ A directory belongs here only when all of these hold:
   name never repeats the module name — `widgets/copilot-dock`, not
   `widgets/copilot`.
 - Layers are derived from file paths, not declared by the module type
-  (ADR-069): `registry:block` may ship `src/features`, `src/widgets`,
-  `src/components` and `src/lib`; `registry:component` ships
-  `src/components` and `src/lib`; `registry:lib` ships `src/lib` and
-  `src/components`.
+  (ADR-069): `registry:block` may ship `features`, `widgets`, `components` and
+  `lib`; `registry:component` ships `components` and `lib`; `registry:lib`
+  ships `lib` and `components`.
 - A block's `contract.layers[]` names each labelled layer with its `types.ts`
   path, labels, ports and states; the top-level unions are checked against the
   layers. Components and libs need no contract.
@@ -54,9 +54,10 @@ repository-root `harness/` (its `framework/` tree doubles the host surface that
 imported as `@testing/*`), `scripts/`, and the root `package.json` / `vitest.config.ts` /
 `tsconfig.json`.
 `scripts/check-contract.mjs` enforces this — directory name equals
-`fewbie.module.json.name`, `files` paths are safe and exist, and the on-disk payload
-(minus `test/`) matches `files` exactly. Modules without a `contract` warn and
-skip only the contract comparison.
+`fewbie.module.json.name`, `files` paths are safe and exist, and the on-disk
+payload (minus `test/`, re-attached to the install root) matches `files`
+exactly. Modules without a `contract` warn and skip only the contract
+comparison.
 
 ## Workflow conventions
 

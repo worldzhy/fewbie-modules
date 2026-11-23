@@ -81,7 +81,10 @@ async function runGate(modules: FixtureModule[]): Promise<GateResult> {
     await fs.mkdir(itemDirectory, { recursive: true });
     await fs.writeFile(path.join(itemDirectory, "fewbie.module.json"), JSON.stringify(module.manifest, null, 2));
     for (const [file, source] of Object.entries(module.files)) {
-      const target = path.join(itemDirectory, file);
+      // Payload is stored at the install target minus the install root (ADR-071).
+      const prefix = `src/fewbie/modules/${module.name}/`;
+      const stored = file.startsWith(prefix) ? file.slice(prefix.length) : file;
+      const target = path.join(itemDirectory, stored);
       await fs.mkdir(path.dirname(target), { recursive: true });
       await fs.writeFile(target, source);
     }

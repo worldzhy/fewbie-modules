@@ -4,12 +4,12 @@ import { expectNoViolations } from "@testing/a11y";
 import { deferred } from "@testing/deferred";
 import { makeLabels } from "@testing/labels";
 import { render, screen, userEvent, waitFor } from "@testing/render";
-import { SecuritySettings } from "../src/fewbie/modules/account-settings/features/security-settings/security-settings";
+import { SecuritySettings } from "../features/security-settings/security-settings";
 import type {
   SecuritySession,
   SecuritySettingsLabels,
   SecuritySettingsPort,
-} from "../src/fewbie/modules/account-settings/features/security-settings/types";
+} from "../features/security-settings/types";
 
 const SESSIONS: SecuritySession[] = [
   {
