@@ -4,8 +4,8 @@ import { expectNoViolations } from "@testing/a11y";
 import { makeLabels } from "@testing/labels";
 import { render, screen, within } from "@testing/render";
 
-import { PasswordChecklist } from "../src/features/password-checklist/password-checklist";
-import type { PasswordChecklistLabels } from "../src/features/password-checklist/types";
+import { PasswordChecklist } from "../src/fewbie/modules/password-checklist/components/password-checklist/password-checklist";
+import type { PasswordChecklistLabels } from "../src/fewbie/modules/password-checklist/components/password-checklist/types";
 
 const labels = makeLabels<PasswordChecklistLabels>();
 

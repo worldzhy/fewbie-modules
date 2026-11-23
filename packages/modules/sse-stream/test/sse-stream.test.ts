@@ -1,6 +1,6 @@
 import { deferred } from "@testing/deferred";
 
-import { consumeSseStream } from "../src/lib/sse-stream";
+import { consumeSseStream } from "../src/fewbie/modules/sse-stream/lib/sse-stream";
 
 test("concurrent streams do not steal each other's multibyte bytes", async () => {
   const encoder = new TextEncoder();

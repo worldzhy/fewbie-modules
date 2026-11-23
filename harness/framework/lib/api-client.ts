@@ -2,7 +2,7 @@
  * Compile-time stand-in for the framework's `@/lib/api-client` barrel.
  *
  * The real barrel ships with the fewbie template, not with an item, so the
- * registry cannot import it. This stub mirrors the subset items use so
+ * registry cannot import it. This stub mirrors the subset modules use so
  * `npm run check:types` verifies the call sites without a host checkout.
  */
 
