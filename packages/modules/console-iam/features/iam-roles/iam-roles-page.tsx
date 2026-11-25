@@ -50,8 +50,12 @@ export function IamRolesPage(props: IamRolesProps) {
   };
 
   const handleSaved = (action: IamRoleAction) => {
-    setCreating(false);
-    setEditing(null);
+    // Saving bindings keeps the editor open so the checkbox grid stays in view;
+    // creating, renaming or deleting a role ends the dialog.
+    if (action !== "roleGroupsUpdated") {
+      setCreating(false);
+      setEditing(null);
+    }
     void invalidateRoles();
     onSuccess?.(action);
   };
