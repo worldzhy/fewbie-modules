@@ -97,7 +97,19 @@ const HOST_PACKAGES = new Set(["next"]);
  * dependency because no module ships them; the coupling is declared here so a new
  * framework path is a reviewed change rather than an invisible one (R82-13).
  */
-const FRAMEWORK_MODULES = new Set(["@/lib/api-client", "@/lib/utils"]);
+const FRAMEWORK_MODULES = new Set([
+  "@/lib/api-client",
+  "@/lib/utils",
+  // Domain-neutral page chrome: a featured page composes the same shell, states
+  // and confirmation the host already renders, instead of shipping a second copy.
+  "@/fewbie/framework/page/page-shell",
+  "@/fewbie/framework/page/page-header",
+  "@/fewbie/framework/page/section-tabs",
+  "@/fewbie/framework/states/loading-state",
+  "@/fewbie/framework/states/empty-state",
+  "@/fewbie/framework/states/error-state",
+  "@/fewbie/framework/feedback/confirm-dialog",
+]);
 /**
  * Layers each manifest type may install into. A feature stays a feature so host
  * lint sees it as one; a lib may ship a component payload beside its logic

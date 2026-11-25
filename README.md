@@ -82,8 +82,12 @@ when a declared registry dependency is not imported by any installed file.
   catalogs and route labels arrive through props (`resolveMeta`,
   `categoryVisuals`, `pageContext`, `renderChart`), while navigation is
   delegated to `onNavigate`/`onOpenLink` callbacks.
-- Modules depend only on the fewbie framework surface (`@/fewbie/ui/*` and
-  React); they never import a host's i18n, router, transport or toast library.
+- Modules depend only on the fewbie framework surface (`@/fewbie/ui/*`, the
+  allowlisted `@/fewbie/framework/*` chrome, and React); they never import a
+  host's i18n, router, transport or toast library. The framework allowlist is a
+  reviewed list in `check-contract.mjs`, and the coupling is version-gated by
+  `contract.framework`, so a host that has not pulled that framework release
+  fails at install time instead of at build time.
 - Copy, transport and side effects enter through props (`labels`, `port`,
   `onSignedIn`), so a host keeps its own i18n and API client.
 - A layer may declare `defaults` — locale-keyed copy for labels the host may
