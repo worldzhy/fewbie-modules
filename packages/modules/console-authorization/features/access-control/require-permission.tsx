@@ -25,6 +25,7 @@ export function RequirePermission({
   description,
   canSee,
   pending,
+  loadingLabel,
   children,
 }: {
   routePath: string;
@@ -32,6 +33,8 @@ export function RequirePermission({
   description?: string;
   canSee?: boolean;
   pending?: boolean;
+  /** `null` renders the spinner without copy, matching a host that has none. */
+  loadingLabel?: string | null;
   children: ReactNode;
 }) {
   const context = useConsoleAccess();
@@ -39,7 +42,12 @@ export function RequirePermission({
   const resolvedPending = pending ?? context.pending;
 
   if (resolvedPending) {
-    return <LoadingState label={context.labels.loadingLabel} className="py-16" />;
+    return (
+      <LoadingState
+        label={loadingLabel === null ? undefined : (loadingLabel ?? context.labels.loadingLabel)}
+        className="py-16"
+      />
+    );
   }
 
   if (!resolvedCanSee) {
