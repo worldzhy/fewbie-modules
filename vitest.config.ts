@@ -23,6 +23,12 @@ export default defineConfig({
       "@/fewbie/modules/sse-stream/lib/sse-stream": fileURLToPath(
         new URL("./packages/modules/sse-stream/lib/sse-stream.ts", import.meta.url),
       ),
+      "@/fewbie/modules/console-kit/components/pagination-bar": fileURLToPath(
+        new URL("./packages/modules/console-kit/components/pagination-bar.tsx", import.meta.url),
+      ),
+      "@/fewbie/modules/console-kit/components/table-shell": fileURLToPath(
+        new URL("./packages/modules/console-kit/components/table-shell.tsx", import.meta.url),
+      ),
       // Cross-item imports go through the item's public entry.
       "@/fewbie/modules/notification-center/components/notification-presentation": fileURLToPath(
         new URL(
