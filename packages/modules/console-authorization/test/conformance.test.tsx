@@ -86,6 +86,29 @@ describe("console-authorization conformance", () => {
     expect(screen.getByText("can:false")).toBeInTheDocument();
   });
 
+  it("lets a host pass its own canSee and pending without a provider", () => {
+    const { rerender } = render(
+      <RequirePermission routePath="/iam/users" canSee>
+        secret
+      </RequirePermission>,
+    );
+    expect(screen.getByText("secret")).toBeInTheDocument();
+
+    rerender(
+      <RequirePermission routePath="/iam/users" canSee pending>
+        secret
+      </RequirePermission>,
+    );
+    expect(screen.getByRole("status")).toBeInTheDocument();
+
+    rerender(
+      <RequirePermission routePath="/iam/users" canSee={false} title="Nope">
+        secret
+      </RequirePermission>,
+    );
+    expect(screen.getByText("Nope")).toBeInTheDocument();
+  });
+
   it("has no accessibility violations in the denied state", async () => {
     const { container } = render(
       <ConsoleAccessProvider labels={LABELS} groups={[]}>
