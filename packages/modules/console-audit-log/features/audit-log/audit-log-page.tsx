@@ -1,5 +1,8 @@
 "use client";
 
+// @tanstack/react-query is a declared dependency in fewbie.module.json, so the
+// host rule that keeps module state out of the host stack does not apply here.
+// eslint-disable-next-line no-restricted-imports
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 

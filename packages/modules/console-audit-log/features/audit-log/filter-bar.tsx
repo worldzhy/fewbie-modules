@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { FormEvent } from "react";
 
 import { Button } from "@/fewbie/ui/button";
@@ -39,6 +39,18 @@ function toDraft(query: AuditLogQuery): FilterDraft {
   };
 }
 
+const EMPTY_FILTERS: FilterDraft = {
+  keyword: "",
+  event: "",
+  action: "",
+  resourceType: "",
+  resourceId: "",
+  actorId: "",
+  result: "",
+  startTime: "",
+  endTime: "",
+};
+
 interface FilterBarProps {
   labels: AuditLogLabels;
   /** The applied request; the draft re-seeds from it after apply or reset. */
@@ -54,11 +66,10 @@ interface FilterBarProps {
 export function FilterBar({ labels, value, onApply, onReset }: FilterBarProps) {
   const [draft, setDraft] = useState<FilterDraft>(() => toDraft(value));
 
-  // Re-seed from the applied request: a reset clears the fields, and a page
-  // change leaves them as submitted.
-  useEffect(() => {
-    setDraft(toDraft(value));
-  }, [value]);
+  const reset = () => {
+    setDraft(EMPTY_FILTERS);
+    onReset();
+  };
 
   const setField = <K extends keyof FilterDraft>(key: K, next: FilterDraft[K]) => {
     setDraft((current) => ({ ...current, [key]: next }));
@@ -168,7 +179,7 @@ export function FilterBar({ labels, value, onApply, onReset }: FilterBarProps) {
         <Button type="submit" size="sm">
           {labels.apply}
         </Button>
-        <Button type="button" variant="outline" size="sm" onClick={onReset}>
+        <Button type="button" variant="outline" size="sm" onClick={reset}>
           {labels.reset}
         </Button>
       </div>
