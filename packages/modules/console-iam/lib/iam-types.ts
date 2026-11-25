@@ -80,6 +80,85 @@ export interface IamRoleInput {
   description?: string;
 }
 
+/** The actions the backend accepts for a permission grant. */
+export type IamPermissionAction = "List" | "Get" | "Create" | "Update" | "Delete";
+
+/** One row of the grant ledger: a (resource, action) pair granted to a role or a user. */
+export interface IamPermission {
+  id: number;
+  resource: string;
+  action: IamPermissionAction;
+  roleId?: number | null;
+  trustedUserId?: string | null;
+  createdAt?: string | null;
+}
+
+/** One permission-list request; an absent resource means "no constraint". */
+export interface IamPermissionQuery {
+  page: number;
+  pageSize: number;
+  resource?: string;
+}
+
+/** One page of grants plus the total behind it. */
+export interface IamPermissionPage {
+  records: IamPermission[];
+  total: number;
+}
+
+/** New grant; exactly one of `roleId` / `trustedUserId` scopes it. */
+export interface IamPermissionInput {
+  resource: string;
+  action: IamPermissionAction;
+  roleId?: number;
+  trustedUserId?: string;
+}
+
+/** Where a permission group appears in the console navigation. */
+export type IamNavPlacement = "HEADER_NAVIGATION" | "NONE";
+
+/** One permission group as the list endpoint returns it. */
+export interface IamPermissionGroup {
+  id: number;
+  name: string;
+  description?: string | null;
+  routePath: string;
+  navPlacement: IamNavPlacement;
+  navOrder: number;
+  navLabel: string;
+  navIcon?: string | null;
+  /** Builtin groups cannot be deleted; their name comes from the seed. */
+  isBuiltin: boolean;
+}
+
+/** One (resource, action) grant inside a permission group. */
+export interface IamGroupPermission {
+  id: number;
+  resource: string;
+  action: IamPermissionAction;
+}
+
+/** A permission group with every grant attached to it. */
+export interface IamPermissionGroupDetail extends IamPermissionGroup {
+  permissions: IamGroupPermission[];
+}
+
+/** Writable permission-group fields. */
+export interface IamPermissionGroupInput {
+  name: string;
+  description?: string;
+  routePath: string;
+  navPlacement: IamNavPlacement;
+  navLabel: string;
+  navIcon?: string;
+}
+
+/** One grant in a group's replacement set. */
+export interface IamGroupPermissionInput {
+  resource: string;
+  action: IamPermissionAction;
+}
+
 /** Best display label for an account, mirroring the backend's own fallback order. */
 export function userDisplayName(user: IamUser): string {
   const joined = [user.firstName, user.lastName].filter((part) => part && part.trim()).join(" ");

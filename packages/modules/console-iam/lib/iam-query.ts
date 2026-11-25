@@ -1,4 +1,4 @@
-import type { IamUserQuery, IamUserStatus } from "./iam-types";
+import type { IamPermissionQuery, IamUserQuery, IamUserStatus } from "./iam-types";
 
 /** Rows per page unless the host asks for a different size. */
 export const DEFAULT_IAM_PAGE_SIZE = 20;
@@ -21,8 +21,19 @@ export const iamKeys = {
     all: [...ROOT, "roles"] as const,
     detail: (roleId: number) => [...ROOT, "roles", "detail", roleId] as const,
   },
+  permissions: {
+    /** Every grant list, invalidated after a grant or revoke. */
+    all: [...ROOT, "permissions"] as const,
+    list: (query: IamPermissionQuery) => [...ROOT, "permissions", "page", query] as const,
+    /** Resource names the backend accepts, used by the grant pickers. */
+    resources: [...ROOT, "permissions", "resources"] as const,
+    /** Action names the backend accepts, used by the grant pickers. */
+    actions: [...ROOT, "permissions", "actions"] as const,
+  },
   permissionGroups: {
+    /** Every permission-group query, including details. */
     all: [...ROOT, "permission-groups"] as const,
+    detail: (groupId: number) => [...ROOT, "permission-groups", "detail", groupId] as const,
   },
 };
 
@@ -44,5 +55,16 @@ export function normalizeUserQuery(
   const status = query?.status;
   if (status && STATUSES.includes(status)) next.status = status;
 
+  return next;
+}
+
+/** Same canonicalization for the grant ledger: trim the resource, clamp the page. */
+export function normalizePermissionQuery(
+  query: Partial<IamPermissionQuery> | undefined,
+  pageSize: number = DEFAULT_IAM_PAGE_SIZE,
+): IamPermissionQuery {
+  const next: IamPermissionQuery = { page: Math.max(0, Math.trunc(query?.page ?? 0)), pageSize };
+  const resource = query?.resource?.trim();
+  if (resource) next.resource = resource;
   return next;
 }
