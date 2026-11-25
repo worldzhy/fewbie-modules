@@ -14,7 +14,7 @@ import { iamKeys } from "../../lib/iam-query";
 import type { IamPermissionGroup, IamPermissionGroupInput } from "../../lib/iam-types";
 import { GroupDialog } from "./group-dialog";
 import { GroupsTable } from "./groups-table";
-import type { IamPermissionGroupAction, IamPermissionGroupsProps } from "./types";
+import type { IamPermissionGroupsProps } from "./types";
 
 /**
  * Permission-group list: CRUD, header navigation order (up/down) and the handle
