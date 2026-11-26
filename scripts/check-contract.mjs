@@ -104,6 +104,7 @@ const FRAMEWORK_MODULES = new Set([
   // and confirmation the host already renders, instead of shipping a second copy.
   "@/fewbie/framework/page/page-shell",
   "@/fewbie/framework/page/page-header",
+  "@/fewbie/framework/page/pagination-bar",
   "@/fewbie/framework/page/section-tabs",
   "@/fewbie/framework/states/loading-state",
   "@/fewbie/framework/states/empty-state",

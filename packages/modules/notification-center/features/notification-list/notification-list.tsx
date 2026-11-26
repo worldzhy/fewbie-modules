@@ -6,7 +6,6 @@ import { Button } from "@/fewbie/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/fewbie/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/fewbie/ui/tabs";
 import {
-  interpolate,
   NotificationDetailPanel,
   NotificationDetailSheet,
   NotificationPresentationProvider,
@@ -319,7 +318,7 @@ function NotificationCenterContent(props: NotificationCenterContentProps) {
           <TabsList>
             <TabsTrigger value="all">{labels.tabAll}</TabsTrigger>
             <TabsTrigger value="unread">
-              {unreadCount > 0 ? interpolate(labels.tabUnreadWithCount, { count: unreadCount }) : labels.tabUnread}
+              {unreadCount > 0 ? labels.tabUnreadWithCount(unreadCount) : labels.tabUnread}
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -440,7 +439,7 @@ function NotificationCenterContent(props: NotificationCenterContentProps) {
                 </div>
               </>
             ) : (
-              <span className="tabular-nums">{interpolate(labels.totalNotifications, { count: total })}</span>
+              <span className="tabular-nums">{labels.totalNotifications(total)}</span>
             )}
             <span className="hidden lg:inline">
               <kbd className="rounded border bg-muted px-1 font-mono">{"J"}</kbd>{" "}

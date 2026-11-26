@@ -13,7 +13,7 @@ import type {
 export interface NotificationCenterLabels {
   tabAll: string;
   tabUnread: string;
-  tabUnreadWithCount: string;
+  tabUnreadWithCount: (count: number) => string;
   severityAll: string;
   ariaSeverity: string;
   ariaCategory: string;
@@ -23,7 +23,7 @@ export interface NotificationCenterLabels {
   emptyFiltered: string;
   dayToday: string;
   dayYesterday: string;
-  totalNotifications: string;
+  totalNotifications: (count: number) => string;
   ariaPrevPage: string;
   ariaNextPage: string;
   keyboardHint: string;

@@ -32,7 +32,7 @@
   ],
   "contract": {
     "version": "2.0.0",
-    "framework": "^1.15.0",
+    "framework": "^1.20.0",
     "entry": "src/fewbie/modules/console-iam/features/iam/index.ts",
     "labels": [
       "usersTitle",
