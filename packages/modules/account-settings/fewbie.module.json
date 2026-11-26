@@ -17,7 +17,7 @@
   "registryDependencies": [],
   "contract": {
     "version": "2.0.0",
-    "framework": "^1.7.0",
+    "framework": "^1.20.0",
     "entry": "src/fewbie/modules/account-settings/features/preferences-settings/index.ts",
     "labels": [
       "languageTitle",

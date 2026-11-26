@@ -1,4 +1,6 @@
 /** One audit-log page request; an absent filter means "no constraint". */
+import { clampPage } from "@/fewbie/modules/console-kit/lib/pagination";
+
 export interface AuditLogQuery {
   page: number;
   pageSize: number;
@@ -45,7 +47,7 @@ export function normalizeAuditLogQuery(
   query: Partial<AuditLogQuery> | undefined,
   pageSize: number = DEFAULT_AUDIT_LOG_PAGE_SIZE,
 ): AuditLogQuery {
-  const next: AuditLogQuery = { page: Math.max(0, Math.trunc(query?.page ?? 0)), pageSize };
+  const next: AuditLogQuery = { page: clampPage(query?.page), pageSize };
 
   for (const key of TEXT_FILTERS) {
     const value = query?.[key]?.trim();

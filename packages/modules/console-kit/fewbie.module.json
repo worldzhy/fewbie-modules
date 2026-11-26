@@ -6,6 +6,7 @@
   "dependencies": [],
   "registryDependencies": [],
   "files": [
+    "src/fewbie/modules/console-kit/lib/pagination.ts",
     "src/fewbie/modules/console-kit/components/pagination-bar.tsx",
     "src/fewbie/modules/console-kit/components/table-shell.tsx"
   ]

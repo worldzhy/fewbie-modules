@@ -16,7 +16,7 @@
   ],
   "contract": {
     "version": "2.0.0",
-    "framework": "^1.15.0",
+    "framework": "^1.20.0",
     "entry": "src/fewbie/modules/console-authorization/features/access-control/index.ts",
     "labels": ["accessDeniedTitle", "accessDeniedDescription", "loadingLabel"],
     "ports": [],

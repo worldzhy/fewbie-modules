@@ -1,4 +1,5 @@
 import type { IamPermissionQuery, IamUserQuery, IamUserStatus } from "./iam-types";
+import { clampPage } from "@/fewbie/modules/console-kit/lib/pagination";
 
 /** Rows per page unless the host asks for a different size. */
 export const DEFAULT_IAM_PAGE_SIZE = 20;
@@ -47,7 +48,7 @@ export function normalizeUserQuery(
   query: Partial<IamUserQuery> | undefined,
   pageSize: number = DEFAULT_IAM_PAGE_SIZE,
 ): IamUserQuery {
-  const next: IamUserQuery = { page: Math.max(0, Math.trunc(query?.page ?? 0)), pageSize };
+  const next: IamUserQuery = { page: clampPage(query?.page), pageSize };
 
   const name = query?.name?.trim();
   if (name) next.name = name;
@@ -63,7 +64,7 @@ export function normalizePermissionQuery(
   query: Partial<IamPermissionQuery> | undefined,
   pageSize: number = DEFAULT_IAM_PAGE_SIZE,
 ): IamPermissionQuery {
-  const next: IamPermissionQuery = { page: Math.max(0, Math.trunc(query?.page ?? 0)), pageSize };
+  const next: IamPermissionQuery = { page: clampPage(query?.page), pageSize };
   const resource = query?.resource?.trim();
   if (resource) next.resource = resource;
   return next;
