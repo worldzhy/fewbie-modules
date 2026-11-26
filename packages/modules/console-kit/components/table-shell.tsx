@@ -5,7 +5,7 @@ import { ErrorState } from "@/fewbie/framework/states/error-state";
 import { LoadingState } from "@/fewbie/framework/states/loading-state";
 import { cn } from "@/lib/utils";
 
-/** Copy for the non-ready states. Loading and retry copy are optional. */
+/** Copy + optional host-provided ReactNode for call-to-action in empty state. */
 export interface TableShellLabels {
   loading?: string;
   emptyTitle: string;
@@ -22,6 +22,9 @@ export interface TableShellProps {
   /** Provider/transport message shown under the error title. */
   errorMessage?: string;
   onRetry?: () => void;
+  /** Optional host-provided action rendered inside the empty state
+   *  (e.g. "Create" button, "Attach account" button). */
+  emptyAction?: ReactNode;
   className?: string;
   /** When false the ready state renders children as-is without the default
    *  overflow/border/card wrapper. Use this when the caller already provides
@@ -40,6 +43,7 @@ export function TableShell({
   labels,
   errorMessage,
   onRetry,
+  emptyAction,
   className,
   wrapChildren = true,
   children,
@@ -51,7 +55,9 @@ export function TableShell({
     );
   }
   if (state === "empty") {
-    return <EmptyState title={labels.emptyTitle} description={labels.emptyDescription} />;
+    return (
+      <EmptyState title={labels.emptyTitle} description={labels.emptyDescription} action={emptyAction} />
+    );
   }
 
   return wrapChildren ? (
