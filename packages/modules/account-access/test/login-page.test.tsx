@@ -5,16 +5,32 @@ import { deferred } from "@testing/deferred";
 import { makeLabels } from "@testing/labels";
 import { render, screen, userEvent, waitFor } from "@testing/render";
 import { LoginPage } from "../features/login-page/login-page";
+import { LoginShell } from "../features/login-page/login-shell";
 import type { LoginLabels, LoginPort } from "../features/login-page/types";
 
-function setup(overrides: Partial<LoginPort> = {}, props: { onSignedIn?: () => void } = {}) {
+function setup(
+  overrides: Partial<LoginPort> = {},
+  props: {
+    onSignedIn?: () => void;
+    onError?: (message: string) => void;
+    onForgotPassword?: (email: string) => void;
+  } = {},
+) {
   const port: LoginPort = {
     signIn: vi.fn().mockResolvedValue({ ok: true }),
     sendVerificationCode: vi.fn().mockResolvedValue({ ok: true }),
     ...overrides,
   };
   const labels = makeLabels<LoginLabels>();
-  const view = render(<LoginPage labels={labels} port={port} onSignedIn={props.onSignedIn} />);
+  const view = render(
+    <LoginPage
+      labels={labels}
+      port={port}
+      onSignedIn={props.onSignedIn}
+      onError={props.onError}
+      onForgotPassword={props.onForgotPassword}
+    />,
+  );
   return { port, labels, view, user: userEvent.setup() };
 }
 
@@ -66,8 +82,41 @@ describe("login-page conformance", () => {
     expect(port.signIn).toHaveBeenCalledWith({ account: "user@example.com", password: "correct-horse" });
   });
 
+  it("navigates to password recovery with the typed email", async () => {
+    const onForgotPassword = vi.fn();
+    const { user } = setup({}, { onForgotPassword });
+    await user.type(screen.getByLabelText("label:email"), "user@example.com");
+    await user.click(screen.getByRole("button", { name: "label:forgotPassword" }));
+    expect(onForgotPassword).toHaveBeenCalledWith("user@example.com");
+  });
+
+  it("hands failures to the host when onError is provided", async () => {
+    const onError = vi.fn();
+    const { user } = setup({ signIn: vi.fn().mockResolvedValue({ ok: false, invalidCredentials: true }) }, { onError });
+    await fillPasswordForm(user);
+    await user.click(screen.getByRole("button", { name: "label:submit" }));
+    await waitFor(() => expect(onError).toHaveBeenCalledWith("label:invalidCredentials"));
+    expect(screen.queryByText("label:invalidCredentials")).not.toBeInTheDocument();
+  });
+
   it("has no accessibility violations in the idle state", async () => {
     const { view } = setup();
     await expectNoViolations(view.container);
+  });
+});
+
+describe("login-shell palette", () => {
+  it("renders the night palette by default", () => {
+    const { container } = render(<LoginShell>sign-in</LoginShell>);
+    const root = container.firstElementChild as HTMLElement;
+    expect(root.style.getPropertyValue("--login-backdrop")).toBe("#070c17");
+    expect(root.style.getPropertyValue("--primary")).toBe("#3b82f6");
+  });
+
+  it("overrides only the keys a host passes", () => {
+    const { container } = render(<LoginShell palette={{ "--primary": "#ff0000" }}>sign-in</LoginShell>);
+    const root = container.firstElementChild as HTMLElement;
+    expect(root.style.getPropertyValue("--primary")).toBe("#ff0000");
+    expect(root.style.getPropertyValue("--card")).toBe("#151b24");
   });
 });

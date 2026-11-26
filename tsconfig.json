@@ -17,6 +17,12 @@
         "./packages/modules/account-access/lib/password-policy.ts"
       ],
       "@/fewbie/modules/sse-stream/lib/sse-stream": ["./packages/modules/sse-stream/lib/sse-stream.ts"],
+      "@/fewbie/modules/console-kit/components/pagination-bar": [
+        "./packages/modules/console-kit/components/pagination-bar.tsx"
+      ],
+      "@/fewbie/modules/console-kit/components/table-shell": [
+        "./packages/modules/console-kit/components/table-shell.tsx"
+      ],
       // TypeScript allows one `*` per path entry, so cross-item module imports
       // are listed explicitly (R84-06).
       "@/fewbie/modules/notification-center/components/notification-presentation": [

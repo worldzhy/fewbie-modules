@@ -33,7 +33,16 @@ function setup(send?: (input: CopilotSendInput) => Promise<void>) {
   const onOpenLink = vi.fn();
   render(
     <CopilotDock
-      labels={makeLabels<CopilotLabels>()}
+      labels={makeLabels<CopilotLabels>({
+        aboutSkill: (name) => `About ${name}`,
+        context: (label) => `Context: ${label}`,
+        rowsCount: (count) => `${count} rows`,
+        showingRows: (shown, total) => `${shown}/${total} rows`,
+        steps: (count) => `${count} steps`,
+        suggestOnPage: (label) => `On ${label}`,
+        tokens: (count) => `${count} tokens`,
+        tooLongMessage: (limit) => `Limit ${limit}`,
+      })}
       port={port}
       open
       onClose={vi.fn()}
@@ -54,6 +63,7 @@ describe("copilot conformance", () => {
     setup();
     expect(await screen.findByText("label:emptyIntro")).toBeInTheDocument();
     expect(await screen.findByText("List AWS Accounts")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "About List AWS Accounts" })).toBeInTheDocument();
   });
 
   it("sends the drafted message through the port and renders streamed text", async () => {
