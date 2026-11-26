@@ -23,6 +23,10 @@ export interface TableShellProps {
   errorMessage?: string;
   onRetry?: () => void;
   className?: string;
+  /** When false the ready state renders children as-is without the default
+   *  overflow/border/card wrapper. Use this when the caller already provides
+   *  its own outer surface (modal panels, host-designed cards). Default true. */
+  wrapChildren?: boolean;
   children?: ReactNode;
 }
 
@@ -31,7 +35,15 @@ export interface TableShellProps {
  * in, so a list page never re-implements them. `state: "ready"` renders the
  * caller's table; every other state replaces it.
  */
-export function TableShell({ state, labels, errorMessage, onRetry, className, children }: TableShellProps) {
+export function TableShell({
+  state,
+  labels,
+  errorMessage,
+  onRetry,
+  className,
+  wrapChildren = true,
+  children,
+}: TableShellProps) {
   if (state === "loading") return <LoadingState label={labels.loading} />;
   if (state === "error") {
     return (
@@ -42,5 +54,9 @@ export function TableShell({ state, labels, errorMessage, onRetry, className, ch
     return <EmptyState title={labels.emptyTitle} description={labels.emptyDescription} />;
   }
 
-  return <div className={cn("overflow-x-auto rounded-lg border bg-card", className)}>{children}</div>;
+  return wrapChildren ? (
+    <div className={cn("overflow-x-auto rounded-lg border bg-card", className)}>{children}</div>
+  ) : (
+    <>{children}</>
+  );
 }
