@@ -9,19 +9,21 @@
 
 ## 1. 锚点
 
-| Repo | HEAD | Remote | Dirty |
-|---|---|---|---|
-| devbie | `9ecb6dd7` | `9ecb6dd7` | 0 |
-| fewbie-modules | `be6a1b9` | `be6a1b9` | 0 |
-| crewbie-console-frontend | `bf7eda7` | `bf7eda7` | 0 |
-| nightwatch-frontend | `68e650bd` | `68e650bd` | 0 |
+| Repo                     | HEAD       | Remote     | Dirty |
+| ------------------------ | ---------- | ---------- | ----- |
+| devbie                   | `9ecb6dd7` | `9ecb6dd7` | 0     |
+| fewbie-modules           | `be6a1b9`  | `be6a1b9`  | 0     |
+| crewbie-console-frontend | `bf7eda7`  | `bf7eda7`  | 0     |
+| nightwatch-frontend      | `68e650bd` | `68e650bd` | 0     |
 
 ## 2. 范围与方法
 
 ADR-084 §「不在本 ADR 范围」明确排除：
+
 - `audit-log` / `authorization` 的 host/api.ts 同类分叉 → **本轮审查目标**
 
 方法：
+
 - glob 两宿 `**/*host/api.ts` → 确认真正存在的 host 层
 - diff `console-audit-host/api.ts` 两宿 → 逐块比对
 - grep `route-access|use-can-see|RouteAccess` → 确认 authorization 有没有宿主层分叉
@@ -32,12 +34,12 @@ ADR-084 §「不在本 ADR 范围」明确排除：
 
 IAM：crewbie 先抽 helper，nightwatch 内联 → audit：**nightwatch 先抽 helper，crewbie 内联**。
 
-| 维度 | nightwatch (54 行) | crewbie (47 行) | 结论 |
-|---|---|---|---|
-| DTO 映射 | `toRecord(row)` helper | 内联 `.map((row) => ({...}))` | 映射体**完全相同**（10 字段 + `result === "failure" ? "failure" : "success"`） |
-| `toIso` | 有，8 行 | 有，8 行 | **完全相同**（`new Date` + `Number.isNaN` 守卫 + `toISOString`） |
-| query sanitization | 直接传 query 字段 | keyword/event/action/resourceType/resourceId/actorId 全部 `.trim() \|\| undefined`；result 加 `"success" \|\| "failure"` 显式校验 | **crewbie 版本更严，nightwatch 版本有 trim+校验缺失** |
-| 注释 | "Browser transport for the audit-log module..." | "Browser port for the audit-log module. The generated client runs on the shared axios client..." | 宿主差异，无功能影响 |
+| 维度               | nightwatch (54 行)                              | crewbie (47 行)                                                                                                                   | 结论                                                                           |
+| ------------------ | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| DTO 映射           | `toRecord(row)` helper                          | 内联 `.map((row) => ({...}))`                                                                                                     | 映射体**完全相同**（10 字段 + `result === "failure" ? "failure" : "success"`） |
+| `toIso`            | 有，8 行                                        | 有，8 行                                                                                                                          | **完全相同**（`new Date` + `Number.isNaN` 守卫 + `toISOString`）               |
+| query sanitization | 直接传 query 字段                               | keyword/event/action/resourceType/resourceId/actorId 全部 `.trim() \|\| undefined`；result 加 `"success" \|\| "failure"` 显式校验 | **crewbie 版本更严，nightwatch 版本有 trim+校验缺失**                          |
+| 注释               | "Browser transport for the audit-log module..." | "Browser port for the audit-log module. The generated client runs on the shared axios client..."                                  | 宿主差异，无功能影响                                                           |
 
 ### 3b. `console-authorization` — **无分叉**
 
@@ -99,10 +101,10 @@ result: query.result,
 
 ## 5. 修复优先级
 
-| ID | 标题 | 阻塞 | 建议顺序 |
-|---|---|---|---|
-| R2-01 | audit-log DTO 映射 + toIso sink | 否 | 立即做（纯搬移，风险低） |
-| R2-02 | query sanitization 统一口径 | **是——需先确认两宿后端 DTO 是否相同** | 决策后再做 |
+| ID    | 标题                            | 阻塞                                  | 建议顺序                 |
+| ----- | ------------------------------- | ------------------------------------- | ------------------------ |
+| R2-01 | audit-log DTO 映射 + toIso sink | 否                                    | 立即做（纯搬移，风险低） |
+| R2-02 | query sanitization 统一口径     | **是——需先确认两宿后端 DTO 是否相同** | 决策后再做               |
 
 ## 6. 结论
 

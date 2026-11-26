@@ -8,6 +8,7 @@
   "files": [
     "src/fewbie/modules/console-audit-log/lib/types.ts",
     "src/fewbie/modules/console-audit-log/lib/audit-query.ts",
+    "src/fewbie/modules/console-audit-log/lib/mapping.ts",
     "src/fewbie/modules/console-audit-log/features/audit-log/types.ts",
     "src/fewbie/modules/console-audit-log/features/audit-log/audit-log-page.tsx",
     "src/fewbie/modules/console-audit-log/features/audit-log/filter-bar.tsx",
@@ -16,7 +17,7 @@
     "src/fewbie/modules/console-audit-log/features/audit-log/index.ts"
   ],
   "contract": {
-    "version": "2.0.0",
+    "version": "2.1.0",
     "framework": "^1.20.0",
     "entry": "src/fewbie/modules/console-audit-log/features/audit-log/index.ts",
     "labels": [
