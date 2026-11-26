@@ -28,6 +28,15 @@ export function useNotificationPresentation(): NotificationPresentationConfig {
   return value;
 }
 
+/**
+ * Optional variant of `useNotificationPresentation`. Returns null when the
+ * consumer is not wrapped in a provider, allowing surfaces that can fall
+ * back to host defaults (e.g. locale from next-intl) to work standalone.
+ */
+export function useOptionalNotificationPresentation(): NotificationPresentationConfig | null {
+  return useContext(NotificationPresentationContext);
+}
+
 /** Current time, refreshed periodically so relative labels do not go stale. */
 export function useNow(intervalMs = 60_000): Date {
   const [now, setNow] = useState(() => new Date());
