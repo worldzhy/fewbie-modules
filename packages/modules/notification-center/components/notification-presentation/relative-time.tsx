@@ -1,6 +1,5 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { formatRelativeTime, formatTimestamp, resolveLocale } from "./format";
 import { useNow } from "./presentation";
 
@@ -25,8 +24,8 @@ export function RelativeTime({
   locale?: string;
   /** Overrides the browser's resolved time zone. */
   timeZone?: string;
-  /** Overrides the hover-visible absolute timestamp. */
-  title?: ReactNode;
+  /** Overrides the hover-visible absolute timestamp; passed through to HTML <time>.title. */
+  title?: string;
 }) {
   const resolvedLocale = resolveLocale(locale);
   const now = useNow(60_000);

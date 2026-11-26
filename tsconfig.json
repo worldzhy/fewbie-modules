@@ -23,6 +23,9 @@
       "@/fewbie/modules/console-kit/components/table-shell": [
         "./packages/modules/console-kit/components/table-shell.tsx"
       ],
+      "@/fewbie/modules/console-kit/lib/pagination": [
+        "./packages/modules/console-kit/lib/pagination.ts"
+      ],
       // TypeScript allows one `*` per path entry, so cross-item module imports
       // are listed explicitly (R84-06).
       "@/fewbie/modules/notification-center/components/notification-presentation": [
