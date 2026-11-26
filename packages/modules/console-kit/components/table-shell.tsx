@@ -55,9 +55,7 @@ export function TableShell({
     );
   }
   if (state === "empty") {
-    return (
-      <EmptyState title={labels.emptyTitle} description={labels.emptyDescription} action={emptyAction} />
-    );
+    return <EmptyState title={labels.emptyTitle} description={labels.emptyDescription} action={emptyAction} />;
   }
 
   return wrapChildren ? (
