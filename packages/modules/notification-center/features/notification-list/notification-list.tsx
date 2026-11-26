@@ -52,12 +52,12 @@ interface NotificationCenterContentProps extends NotificationCenterProps {
   filter: UnreadFilter;
   severityFilter: string;
   categoryFilter: string;
-  projectFilter: string;
+  scopeFilter: string;
   page: number;
   onFilterChange: (value: string) => void;
   onSeverityChange: (value: string) => void;
   onCategoryChange: (value: string) => void;
-  onProjectChange: (value: string) => void;
+  onScopeChange: (value: string) => void;
   onPageChange: (page: number) => void;
   reload: () => void;
 }
@@ -69,7 +69,7 @@ function NotificationCenterBody(props: NotificationCenterProps) {
   const [filter, setFilter] = useState<UnreadFilter>("all");
   const [severityFilter, setSeverityFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
-  const [projectFilter, setProjectFilter] = useState("all");
+  const [scopeFilter, setScopeFilter] = useState("all");
   const [page, setPage] = useState(0);
   const [result, setResult] = useState<{ key: string; data?: NotificationCenterPage } | null>(null);
   const [nonce, setNonce] = useState(0);
@@ -96,9 +96,9 @@ function NotificationCenterBody(props: NotificationCenterProps) {
       unreadOnly: filter === "unread",
       ...(severityFilter !== "all" ? { severity: severityFilter } : {}),
       ...(categoryKeys ? { notificationKeys: categoryKeys } : {}),
-      ...(projectFilter !== "all" ? { projectId: projectFilter } : {}),
+      ...(scopeFilter !== "all" ? { scopeId: scopeFilter } : {}),
     }),
-    [page, pageSize, filter, severityFilter, categoryKeys, projectFilter],
+    [page, pageSize, filter, severityFilter, categoryKeys, scopeFilter],
   );
   const queryKey = JSON.stringify(query);
   // A response is current only while it carries the request key it answered.
@@ -156,7 +156,7 @@ function NotificationCenterBody(props: NotificationCenterProps) {
         filter={filter}
         severityFilter={severityFilter}
         categoryFilter={categoryFilter}
-        projectFilter={projectFilter}
+        scopeFilter={scopeFilter}
         page={page}
         onFilterChange={(value) => {
           setFilter(value as UnreadFilter);
@@ -170,8 +170,8 @@ function NotificationCenterBody(props: NotificationCenterProps) {
           setCategoryFilter(value);
           setPage(0);
         }}
-        onProjectChange={(value) => {
-          setProjectFilter(value);
+        onScopeChange={(value) => {
+          setScopeFilter(value);
           setPage(0);
         }}
         onPageChange={setPage}
@@ -347,15 +347,15 @@ function NotificationCenterContent(props: NotificationCenterContentProps) {
             ))}
           </SelectContent>
         </Select>
-        <Select value={props.projectFilter} onValueChange={props.onProjectChange}>
-          <SelectTrigger className="h-8 w-44" aria-label={labels.ariaProject}>
+        <Select value={props.scopeFilter} onValueChange={props.onScopeChange}>
+          <SelectTrigger className="h-8 w-44" aria-label={labels.ariaScope}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">{labels.allProjects}</SelectItem>
-            {props.projectOptions.map((project) => (
-              <SelectItem key={project.id} value={project.id}>
-                {project.name}
+            <SelectItem value="all">{labels.allScopes}</SelectItem>
+            {props.scopeOptions.map((scope) => (
+              <SelectItem key={scope.id} value={scope.id}>
+                {scope.name}
               </SelectItem>
             ))}
           </SelectContent>

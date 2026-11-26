@@ -5,6 +5,7 @@ import { deferred } from "@testing/deferred";
 import { makeLabels } from "@testing/labels";
 import { render, screen, userEvent, waitFor } from "@testing/render";
 import { LoginPage } from "../features/login-page/login-page";
+import { LoginShell } from "../features/login-page/login-shell";
 import type { LoginLabels, LoginPort } from "../features/login-page/types";
 
 function setup(
@@ -101,5 +102,21 @@ describe("login-page conformance", () => {
   it("has no accessibility violations in the idle state", async () => {
     const { view } = setup();
     await expectNoViolations(view.container);
+  });
+});
+
+describe("login-shell palette", () => {
+  it("renders the night palette by default", () => {
+    const { container } = render(<LoginShell>sign-in</LoginShell>);
+    const root = container.firstElementChild as HTMLElement;
+    expect(root.style.getPropertyValue("--login-backdrop")).toBe("#070c17");
+    expect(root.style.getPropertyValue("--primary")).toBe("#3b82f6");
+  });
+
+  it("overrides only the keys a host passes", () => {
+    const { container } = render(<LoginShell palette={{ "--primary": "#ff0000" }}>sign-in</LoginShell>);
+    const root = container.firstElementChild as HTMLElement;
+    expect(root.style.getPropertyValue("--primary")).toBe("#ff0000");
+    expect(root.style.getPropertyValue("--card")).toBe("#151b24");
   });
 });

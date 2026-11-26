@@ -37,7 +37,6 @@ snapshot is regenerated, never hand-edited (ADR-058 in `devbie`).
 | `frontend-monitor-sdk` | `src/fewbie/modules/frontend-monitor-sdk/**` | Browser-side monitoring component for the root layout                                                         |
 | `notification-center`  | `src/fewbie/modules/notification-center/**`  | Header bell and unread ticker plus detail sheet/panel; data, copy and categories are host ports               |
 | `sse-stream`           | `src/fewbie/modules/sse-stream/**`           | SSE frame decoder; the request and auth stay in the host                                                      |
-| `theme`                | `src/fewbie/modules/theme/**`                | next-themes provider and light/dark toggle                                                                    |
 
 A module directory mirrors the target layout:
 `packages/modules/account-access/src/fewbie/modules/account-access/features/login-page/login-page.tsx`
