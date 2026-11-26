@@ -1,5 +1,5 @@
-import type { AuditLogPageResult, AuditLogQuery } from "../../features/audit-log";
-import type { AuditLogRecord } from "./types";
+import type { AuditLogPageResult, AuditLogRecord } from "./types";
+import type { AuditLogQuery } from "./audit-query";
 
 /**
  * Pure transforms shared by every console-audit-log host. Sinks DTO ↔
