@@ -366,7 +366,12 @@
             "usersEdit": "Edit",
             "usersDelete": "Delete",
             "usersPrevious": "Previous",
-            "usersNext": "Next"
+            "usersNext": "Next",
+            "usersDeleteDescription": "Delete “{name}”? This cannot be undone.",
+            "usersApproveDescription": "Activate {name} and grant the selected roles?",
+            "usersRejectDescription": "Reject and delete the application from {name}?",
+            "usersPageOf": "Page {page} of {totalPages}",
+            "usersRecordCount": "{total, plural, one {# record} other {# records}}"
           },
           "zh": {
             "usersTitle": "用户",
@@ -419,7 +424,12 @@
             "usersEdit": "编辑",
             "usersDelete": "删除",
             "usersPrevious": "上一页",
-            "usersNext": "下一页"
+            "usersNext": "下一页",
+            "usersDeleteDescription": "删除“{name}”？此操作不可撤销。",
+            "usersApproveDescription": "启用 {name} 并授予所选角色？",
+            "usersRejectDescription": "拒绝并删除来自 {name} 的申请？",
+            "usersPageOf": "第 {page} / {totalPages} 页",
+            "usersRecordCount": "共 {total} 条"
           }
         }
       },
@@ -514,7 +524,10 @@
             "rolesNoGroups": "No permission groups available",
             "rolesNoGroupsBound": "No permission groups bound",
             "rolesGroupsLoadError": "Could not load the current bindings",
-            "rolesActionFailed": "The change could not be saved"
+            "rolesActionFailed": "The change could not be saved",
+            "rolesEditTitle": "Edit role",
+            "rolesDeleteDescription": "Delete “{name}”? Users keep their account but lose this role.",
+            "rolesRecordCount": "{total, plural, one {# role} other {# roles}}"
           },
           "zh": {
             "rolesTitle": "角色",
@@ -552,7 +565,10 @@
             "rolesNoGroups": "暂无可选权限组",
             "rolesNoGroupsBound": "尚未绑定权限组",
             "rolesGroupsLoadError": "当前绑定加载失败",
-            "rolesActionFailed": "保存失败"
+            "rolesActionFailed": "保存失败",
+            "rolesEditTitle": "编辑角色",
+            "rolesDeleteDescription": "删除“{name}”？用户保留账号，但会失去该角色。",
+            "rolesRecordCount": "共 {total} 个角色"
           }
         }
       },
@@ -640,7 +656,12 @@
             "permCancel": "Cancel",
             "permDelete": "Delete",
             "permPrevious": "Previous",
-            "permNext": "Next"
+            "permNext": "Next",
+            "permGrantedToRole": "Role · {role}",
+            "permGrantedToUser": "User · {id}",
+            "permDeleteDescription": "Delete {action} on {resource}?",
+            "permPageOf": "Page {page} of {totalPages}",
+            "permRecordCount": "{total, plural, one {# permission} other {# permissions}}"
           },
           "zh": {
             "permTitle": "权限",
@@ -674,7 +695,12 @@
             "permCancel": "取消",
             "permDelete": "删除",
             "permPrevious": "上一页",
-            "permNext": "下一页"
+            "permNext": "下一页",
+            "permGrantedToRole": "角色 · {role}",
+            "permGrantedToUser": "用户 · {id}",
+            "permDeleteDescription": "删除 {resource} 上的 {action} 权限？",
+            "permPageOf": "第 {page} / {totalPages} 页",
+            "permRecordCount": "共 {total} 条权限"
           }
         }
       },
@@ -801,7 +827,10 @@
             "groupRemovePermissionTitle": "Revoke permission",
             "groupValidationResourceRequired": "Select a resource",
             "groupValidationActionRequired": "Select an action",
-            "groupActionFailed": "The change could not be saved"
+            "groupActionFailed": "The change could not be saved",
+            "groupDeleteDescription": "Delete “{name}”? The navigation entry and its permissions will be removed.",
+            "groupRemovePermissionDescription": "Revoke {action} on {resource} from this group?",
+            "groupRecordCount": "{total, plural, one {# group} other {# groups}}"
           },
           "zh": {
             "groupTitle": "权限组",
@@ -854,7 +883,10 @@
             "groupRemovePermissionTitle": "撤销权限",
             "groupValidationResourceRequired": "请选择资源",
             "groupValidationActionRequired": "请选择操作",
-            "groupActionFailed": "保存失败"
+            "groupActionFailed": "保存失败",
+            "groupDeleteDescription": "删除“{name}”？导航入口及其权限将一并移除。",
+            "groupRemovePermissionDescription": "从该权限组撤销 {resource} 上的 {action} 权限？",
+            "groupRecordCount": "共 {total} 个权限组"
           }
         }
       }
