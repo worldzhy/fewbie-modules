@@ -1,20 +1,22 @@
 /**
  * Route rule and resolver for the copilot host-context.
  *
- * A route rule maps a Next.js pathname prefix to a canonical copilot route
- * label. Each host supplies its own rule table (the labels are host business
- * vocabulary — "projects", "tasks", "crewmates" vary by host), but both
- * hosts must resolve routes through this shared pure function so the
- * "unknown route returns undefined" semantics stay consistent.
+ * A rule maps a pathname to a canonical copilot route label. Each host
+ * supplies its own rule table (the labels are host business vocabulary —
+ * "projects", "tasks", "crewmates" vary by host), but all hosts must resolve
+ * routes through `resolveCopilotRoute` so the "unknown route returns
+ * undefined" semantics stay consistent. The backend treats an undefined
+ * route as "General page": only skills that declared General-page eligibility
+ * enter the catalog, and recommended prompts fall back to the generic set.
  */
 
-/** One host-declared route rule: pathname prefix → canonical copilot route. */
-export interface CopilotRouteRule {
-  /** Next.js pathname prefix, e.g. "/projects/[projectId]". */
-  prefix: string;
-  /** Copilot route label, must be in the host's skill whitelist. */
-  route: string;
-}
+export type CopilotRouteRule =
+  /** Concise form — a static pathname prefix. Matches with `startsWith`. */
+  | { prefix: string; route: string }
+  /** Flexible form — any pathname predicate. Use for RegExp checks, segment
+   *  comparisons, or dynamic-slot normalization that `startsWith` cannot
+   *  express (e.g. UUID segments collapsing to `[projectId]`). */
+  | { match: (pathname: string) => boolean; route: string };
 
 /**
  * Resolve a Next.js pathname to its canonical copilot route label.
@@ -23,9 +25,8 @@ export interface CopilotRouteRule {
  */
 export function resolveCopilotRoute(pathname: string, rules: readonly CopilotRouteRule[]): string | undefined {
   for (const rule of rules) {
-    if (pathname.startsWith(rule.prefix)) {
-      return rule.route;
-    }
+    const matches = "prefix" in rule ? pathname.startsWith(rule.prefix) : rule.match(pathname);
+    if (matches) return rule.route;
   }
   return undefined;
 }
