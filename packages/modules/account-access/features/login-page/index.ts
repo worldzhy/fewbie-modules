@@ -1,5 +1,6 @@
 export { LoginPage } from "./login-page";
 export { LoginShell } from "./login-shell";
+export { GoogleMark, LarkMark } from "../../lib/provider-marks";
 export type { LoginPalette, LoginShellProps } from "./login-shell";
 export { TotpChallenge } from "./totp-challenge";
 export type { TotpChallengeLabels, TotpChallengeProps } from "./totp-challenge";

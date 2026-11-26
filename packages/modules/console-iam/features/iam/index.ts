@@ -40,3 +40,24 @@ export type {
 } from "../iam-permission-groups/types";
 export type { IamUser, IamUserInput, IamUserPage, IamUserQuery, IamUserStatus } from "../../lib/iam-types";
 export { userDisplayName } from "../../lib/iam-types";
+// DTO ↔ module-type mappings are the host transport's shape layer (ADR-084);
+// the host owns the wire call, so the transforms are part of this entry.
+export {
+  fromGroupOptionRow,
+  fromGroupPermissionRow,
+  fromPermissionGroupDetailRow,
+  fromPermissionGroupRow,
+  fromPermissionRow,
+  fromRoleDetailRow,
+  fromRoleRow,
+  fromUserRow,
+  toCreatePermissionGroupInput,
+  toCreatePermissionInput,
+  toCreateRoleInput,
+  toCreateUserInput,
+  toReplaceGroupPermissionsPayload,
+  toReplaceRoleGroupsPayload,
+  toUpdatePermissionGroupInput,
+  toUpdateRoleInput,
+  toUpdateUserInput,
+} from "../../lib/mapping";
