@@ -47,3 +47,5 @@ export type {
   CopilotToolStatus,
 } from "./types";
 export { COPILOT_PROTOCOL_VERSION } from "./types";
+export type { CopilotRouteRule } from "./route-rules";
+export { resolveCopilotRoute } from "./route-rules";

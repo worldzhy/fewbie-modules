@@ -13,6 +13,7 @@
     "src/fewbie/modules/copilot/widgets/copilot-dock/copilot-timeline.tsx",
     "src/fewbie/modules/copilot/widgets/copilot-dock/copilot-empty-state.tsx",
     "src/fewbie/modules/copilot/widgets/copilot-dock/copilot-dock.tsx",
+    "src/fewbie/modules/copilot/widgets/copilot-dock/route-rules.ts",
     "src/fewbie/modules/copilot/widgets/copilot-dock/index.ts"
   ],
   "registryDependencies": [],
