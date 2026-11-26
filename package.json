@@ -9,7 +9,7 @@
   "prettier": "@devbie/style-guide/prettier",
   "scripts": {
     "test": "vitest run",
-    "check:contract": "node scripts/check-contract.mjs",
+    "check:contract": "node scripts/check-contract.mjs && node scripts/check-paths.mjs",
     "check:types": "tsc -p tsconfig.json",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
