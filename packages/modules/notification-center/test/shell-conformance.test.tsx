@@ -20,7 +20,9 @@ function setup(overrides: Partial<NotificationCenterShellPort> = {}, notificatio
   const onNavigate = vi.fn();
   render(
     <NotificationCenterShell
-      labels={makeLabels<NotificationCenterShellLabels>()}
+      labels={makeLabels<NotificationCenterShellLabels>({
+        ariaLatestNotification: (title) => `Latest notification: ${title}`,
+      })}
       presentation={{
         labels: makeLabels<NotificationPresentationLabels>(),
         resolveMeta: (key) => ({ label: `meta:${key}`, category: "ops" }),
@@ -53,5 +55,23 @@ describe("notification-center-shell conformance", () => {
     const { port } = setup({ fetchUnreadCount: vi.fn().mockResolvedValue(120) });
     expect(await screen.findByText("99+")).toBeInTheDocument();
     await waitFor(() => expect(port.fetchUnreadCount).toHaveBeenCalledTimes(1));
+  });
+
+  it("interpolates the latest notification title into its accessible name", async () => {
+    setup({
+      fetchUnreadCount: vi.fn().mockResolvedValue(1),
+      fetchUnread: vi.fn().mockResolvedValue([
+        {
+          id: "n1",
+          notificationKey: "task.failed",
+          title: "Deploy failed",
+          severity: "high",
+          status: "active",
+          read: false,
+          createdAt: new Date().toISOString(),
+        },
+      ]),
+    });
+    expect(await screen.findByRole("button", { name: "Latest notification: Deploy failed" })).toBeInTheDocument();
   });
 });
