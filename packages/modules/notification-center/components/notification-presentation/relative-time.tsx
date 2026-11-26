@@ -1,15 +1,42 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { formatRelativeTime, formatTimestamp, resolveLocale } from "./format";
-import { useNotificationPresentation, useNow } from "./presentation";
+import { useNow } from "./presentation";
 
-export function RelativeTime({ value, className }: { value: string; className?: string }) {
-  const { locale, timeZone } = useNotificationPresentation();
-  const resolved = resolveLocale(locale);
+/**
+ * Provider-free relative-time component.
+ *
+ * `locale` and `timeZone` are both optional; when omitted, they fall back
+ * to the browser defaults (navigator.language and Intl.DateTimeFormat's
+ * resolved timeZone respectively). Hosts that want to pin a locale (e.g.
+ * next-intl's resolved locale) pass it through the prop.
+ */
+export function RelativeTime({
+  value,
+  className,
+  locale,
+  timeZone,
+  title,
+}: {
+  value: string;
+  className?: string;
+  /** Overrides the default navigator.language locale. */
+  locale?: string;
+  /** Overrides the browser's resolved time zone. */
+  timeZone?: string;
+  /** Overrides the hover-visible absolute timestamp. */
+  title?: ReactNode;
+}) {
+  const resolvedLocale = resolveLocale(locale);
   const now = useNow(60_000);
   return (
-    <time dateTime={value} title={formatTimestamp(value, resolved, "medium", timeZone)} className={className}>
-      {formatRelativeTime(value, resolved, now)}
+    <time
+      dateTime={value}
+      title={title ?? formatTimestamp(value, resolvedLocale, "medium", timeZone)}
+      className={className}
+    >
+      {formatRelativeTime(value, resolvedLocale, now)}
     </time>
   );
 }
